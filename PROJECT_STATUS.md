@@ -20,8 +20,9 @@ Deploy the verified site from Cloudflare Workers Static Assets, activate `storec
 
 ## Deployment evidence
 
-- Cloudflare Worker preview: `https://store-canary.formnerd.workers.dev`
-- Cloudflare version: `1280f19c-15ab-4704-92af-48c69cdbcf7b`
+- Cloudflare Worker custom domains: `https://storecanary.app` and `https://www.storecanary.app`
+- Cloudflare version: `8209c212-367d-4c0a-b559-a20f3393e63c`
+- `www` is handled at the edge with a tested `308` redirect to the canonical apex.
 - The temporary Vercel project was deleted after Cloudflare deployment.
 
 ## Guardrails
