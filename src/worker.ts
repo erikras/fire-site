@@ -9,8 +9,11 @@ type Env = {
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const mustRedirect =
+      url.protocol === "http:" || url.hostname === "www.storecanary.app";
 
-    if (url.hostname === "www.storecanary.app") {
+    if (mustRedirect) {
+      url.protocol = "https:";
       url.hostname = "storecanary.app";
       return Response.redirect(url.toString(), 308);
     }
