@@ -2,22 +2,16 @@ import { describe, expect, it } from "vitest";
 import { getProduct, products } from "./products";
 
 describe("product catalog", () => {
-  it("contains exactly the five customer-facing Fire products", () => {
-    expect(products.map((product) => product.slug)).toEqual([
-      "daily-ops",
-      "margin-monitor",
-      "feed-failure-monitor",
-      "accessibility-monitor",
-      "scheduled-reports",
-    ]);
+  it("contains only Daily Ops for the Store Canary site", () => {
+    expect(products.map((product) => product.slug)).toEqual(["daily-ops"]);
   });
 
-  it("marks Daily Ops as the approved private-beta product", () => {
+  it("uses established, neutral availability language", () => {
     const dailyOps = getProduct("daily-ops");
 
-    expect(dailyOps.stage).toBe("Private beta");
-    expect(dailyOps.cta).toBe("Apply for private beta");
-    expect(dailyOps.betaApproved).toBe(true);
+    expect(dailyOps.stage).toBe("Available by request");
+    expect(dailyOps.cta).toBe("Request access");
+    expect(JSON.stringify(dailyOps)).not.toMatch(/beta|early access|waitlist|newly launched/i);
   });
 
   it("keeps internal HQ and platform projects out of the customer catalog", () => {

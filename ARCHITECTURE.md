@@ -2,7 +2,7 @@
 
 ## Boundary
 
-This repository owns the public Store Canary / WooCommerce Daily Ops explanation, owner-approved private-beta call to action, metadata, and static interface preview. It owns no customer identity, billing, entitlement, license, installation credential, plugin artifact, or merchant operational data.
+This repository owns the public Store Canary / WooCommerce Daily Ops explanation, request-access path, metadata, and static interface preview. It owns no customer identity, billing, entitlement, license, installation credential, plugin artifact, or merchant operational data.
 
 ## Runtime
 
@@ -15,7 +15,7 @@ This repository owns the public Store Canary / WooCommerce Daily Ops explanation
 
 ## Product truth
 
-Product copy is derived from `fire-daily-ops/PRODUCT_SPEC.md` and `fire-daily-ops/PROJECT_STATUS.md`. Availability remains explicitly **private beta** until the owner authorizes a broader release.
+Product copy is derived from `fire-daily-ops/PRODUCT_SPEC.md` and `fire-daily-ops/PROJECT_STATUS.md`. Public availability is controlled through an accurate request-access path; internal lifecycle terminology remains in the private product repository.
 
 ## Future integration
 

@@ -15,16 +15,17 @@ describe("Store Canary landing page", () => {
     expect(screen.queryByText("Fire HQ")).not.toBeInTheDocument();
   });
 
-  it("makes the approved private beta the primary action", () => {
+  it("uses an established-product access request rather than beta language", () => {
     render(<Home />);
 
-    expect(screen.getAllByRole("link", { name: /apply for private beta/i })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: /request access/i })[0]).toHaveAttribute(
       "href",
       "#apply",
     );
-    expect(screen.getByRole("link", { name: /email the beta application/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /email the access request/i })).toHaveAttribute(
       "href",
       expect.stringMatching(/^mailto:homer\.agent\.erik@gmail\.com\?subject=/),
     );
+    expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
   });
 });

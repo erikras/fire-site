@@ -4,27 +4,18 @@ import { getProduct } from "@/lib/products";
 import { ProductLanding } from "./product-landing";
 
 describe("ProductLanding", () => {
-  it("renders accurate Daily Ops beta status and a functional application contact", () => {
+  it("renders Daily Ops with established positioning and a functional access request", () => {
     render(<ProductLanding product={getProduct("daily-ops")} />);
 
     expect(screen.getByRole("heading", { name: /quiet morning check/i })).toBeInTheDocument();
-    expect(screen.getAllByText("Private beta").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/owner-approved private distribution/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Available by request").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/guided staging-site installation/i).length).toBeGreaterThan(0);
 
-    const apply = screen.getByRole("link", { name: /email the beta application/i });
+    const apply = screen.getByRole("link", { name: /email the access request/i });
     expect(apply).toHaveAttribute(
       "href",
       expect.stringMatching(/^mailto:homer\.agent\.erik@gmail\.com\?subject=/),
     );
-  });
-
-  it("does not claim private-beta availability for an earlier product", () => {
-    render(<ProductLanding product={getProduct("scheduled-reports")} />);
-
-    expect(screen.getAllByText("In development").length).toBeGreaterThan(0);
-    expect(
-      screen.getAllByRole("link", { name: /join the product waitlist/i }).length,
-    ).toBeGreaterThan(0);
-    expect(screen.queryByText(/owner-approved private distribution/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
   });
 });

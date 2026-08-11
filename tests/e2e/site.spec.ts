@@ -1,20 +1,21 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test("Store Canary presents the Daily Ops private beta", async ({ page }) => {
+test("Store Canary presents Daily Ops as an established product", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Store Canary · WooCommerce Daily Ops/);
   await expect(
     page.getByRole("heading", { name: /quiet morning check for a busy WooCommerce store/i }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /apply for private beta/i })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /request access/i }).first()).toHaveAttribute(
     "href",
     "#apply",
   );
-  await expect(page.getByRole("link", { name: /email the beta application/i })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /email the access request/i })).toHaveAttribute(
     "href",
     /^mailto:homer\.agent\.erik@gmail\.com\?subject=/,
   );
+  await expect(page.getByText(/beta|early access|waitlist/i)).toHaveCount(0);
 });
 
 test("the site does not expose unrelated Fire product pages", async ({ page }) => {

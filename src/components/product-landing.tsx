@@ -3,17 +3,14 @@ import { ProductPreview } from "./product-preview";
 import { SiteFooter, SiteHeader } from "./site-shell";
 
 function contactHref(product: Product) {
-  const subject = encodeURIComponent(
-    `${product.shortName} ${product.betaApproved ? "private beta application" : "waitlist"}`,
-  );
+  const subject = encodeURIComponent(`${product.shortName} access request`);
   const body = encodeURIComponent(
-    `Hi Fire team,\n\nI’m interested in ${product.name}.\n\nStore URL:\nMy role:\nWhat I want this product to solve:\nWooCommerce version (if known):\n\nThanks,`,
+    `Hi Store Canary team,\n\nI’m interested in ${product.name}.\n\nStore URL:\nMy role:\nWhat I want this product to solve:\nWooCommerce version (if known):\n\nThanks,`,
   );
   return `mailto:homer.agent.erik@gmail.com?subject=${subject}&body=${body}`;
 }
 
 export function ProductLanding({ product }: { product: Product }) {
-  const actionLabel = product.betaApproved ? "Email the beta application" : product.cta;
   return (
     <>
       <SiteHeader />
@@ -54,29 +51,25 @@ export function ProductLanding({ product }: { product: Product }) {
         </section>
 
         <section className="apply-section section-shell" id="apply">
-          <p className="section-number">02 / Get involved</p>
+          <p className="section-number">02 / Get Daily Ops</p>
           <div className="apply-grid">
             <div>
-              <h2>
-                {product.betaApproved
-                  ? "Run it on a real store. Tell us where it hurts."
-                  : "Get notified when the next test cohort opens."}
-              </h2>
+              <h2>Put Daily Ops to work on your store.</h2>
               <p>
-                {product.betaApproved
-                  ? "We’re inviting a small number of WooCommerce operators. Start on a backed-up staging site, follow the test checklist, and keep a private feedback channel open. No public release theater."
-                  : "Tell us what you operate and what problem you need solved. We’ll contact you when this product reaches the right beta stage."}
+                Tell us about your WooCommerce setup and the operational checks that consume your
+                time. We’ll confirm compatibility and guide installation on a backed-up staging site
+                before production.
               </p>
             </div>
             <div className="application-card">
               <span className="stage-badge">{product.stage}</span>
-              {product.betaApproved && <strong>Owner-approved private distribution</strong>}
+              <strong>Guided staging-site installation</strong>
               <p>
-                Send a short application with your store, role, and the operational problem you want
-                fixed.
+                Send your store, role, and the operational problem you want fixed. We’ll reply with
+                the right installation path.
               </p>
               <a className="button button-primary" href={contactHref(product)}>
-                {actionLabel}
+                Email the access request
               </a>
               <small>Email opens in your default mail app. No sales call required.</small>
             </div>

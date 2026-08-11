@@ -11,7 +11,7 @@ export function SiteHeader() {
       </Link>
       <nav aria-label="Primary navigation">
         <Link href="#how-it-works">How it works</Link>
-        <Link href="#apply">Private beta</Link>
+        <Link href="#apply">Request access</Link>
       </nav>
     </header>
   );

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Live in production on Cloudflare: one responsive Store Canary landing page for WooCommerce Daily Ops, conservative private-beta claims, a structured email application path, and no browser-side data collection.
+Live in production on Cloudflare: one responsive Store Canary landing page for WooCommerce Daily Ops, established-product positioning, a structured access-request path, and no browser-side data collection.
 
 ## Domain
 
@@ -16,14 +16,14 @@ Live in production on Cloudflare: one responsive Store Canary landing page for W
 
 ## Next task
 
-Configure `storecanary.app` as a secondary domain in the existing Google Workspace, publish authenticated mail DNS through Cloudflare, update the beta CTA to the new address, then recruit the first qualified Daily Ops private-beta participant.
+Configure `storecanary.app` as a secondary domain in the existing Google Workspace, publish authenticated mail DNS through Cloudflare, update the access CTA to the new address, then recruit the first qualified Daily Ops participant.
 
 ## Deployment evidence
 
 - Cloudflare Worker custom domains: `https://storecanary.app` and `https://www.storecanary.app`
-- Cloudflare version: `4f0d74ec-6284-4307-adb4-78897f4f6ef4`
+- Cloudflare version: `2c3298de-90f8-4697-b6ff-c068efc2e91a`
 - Public verification: apex HTTPS `200`; HTTP and `www` return canonical `308` redirects.
-- Canonical metadata, `robots.txt`, `sitemap.xml`, private-beta CTA, and absence of public ZIP links were verified externally.
+- Canonical metadata, `robots.txt`, `sitemap.xml`, request-access CTA, and absence of public ZIP links were verified externally.
 - TLS covers the apex and `www` through Google Trust Services.
 - The temporary Vercel project was deleted after Cloudflare deployment.
 
