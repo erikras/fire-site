@@ -29,7 +29,7 @@ export function SiteFooter() {
         </span>
         <p>WooCommerce Daily Ops, without the dashboard patrol.</p>
       </div>
-      <p>Built by Form Nerd, LLC · Asynchronous support, no sales calls.</p>
+      <p>Built by Form Nerd, LLC.</p>
     </footer>
   );
 }

@@ -27,5 +27,6 @@ describe("Store Canary landing page", () => {
       expect.stringMatching(/^mailto:homer\.agent\.erik@gmail\.com\?subject=/),
     );
     expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/asynchronous support|sales calls/i)).not.toBeInTheDocument();
   });
 });
