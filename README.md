@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Store Canary
 
-## Getting Started
+Public marketing site for **WooCommerce Daily Ops**, deployed at [storecanary.app](https://storecanary.app).
 
-First, run the development server:
+Store Canary catches stuck paid orders, failed payments, new stockouts, and broken scheduled actions, then turns them into one concise daily digest. The site recruits qualified operators for the owner-approved private beta without claiming public availability.
+
+## Development
 
 ```bash
-npm run dev
-# or
+yarn
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quality gate
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+yarn lint
+yarn typecheck
+yarn test
+yarn test:e2e
+yarn build
+yarn format:check
+yarn audit --level high
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Product claims
 
-## Learn More
+Copy must remain consistent with `../fire-daily-ops/PRODUCT_SPEC.md` and `../fire-daily-ops/PROJECT_STATUS.md`. Do not claim public availability, pricing, customers, compliance, or production evidence that the product repository does not support.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The private-beta application opens a structured email to Fire's asynchronous operator inbox. The site itself collects no form data.
