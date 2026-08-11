@@ -9,9 +9,20 @@ Production launch of the Store Canary marketing site for WooCommerce Daily Ops: 
 - Canonical: `https://storecanary.app`
 - `www.storecanary.app` should redirect to the canonical apex.
 
+## Hosting policy
+
+- Cloudflare is the default hosting and DNS platform.
+- Do not deploy to Vercel unless Erik explicitly overrides this policy for a specific project.
+
 ## Next task
 
-Deploy the verified site, confirm the custom domain, HTTPS, public metadata, application CTA, and external accessibility behavior, then recruit the first qualified Daily Ops private-beta participant.
+Deploy the verified site from Cloudflare Workers Static Assets, activate `storecanary.app` in Cloudflare DNS, attach the apex and `www` custom domains, confirm HTTPS, public metadata, application CTA, and external accessibility behavior, then recruit the first qualified Daily Ops private-beta participant.
+
+## Deployment evidence
+
+- Cloudflare Worker preview: `https://store-canary.formnerd.workers.dev`
+- Cloudflare version: `1280f19c-15ab-4704-92af-48c69cdbcf7b`
+- The temporary Vercel project was deleted after Cloudflare deployment.
 
 ## Guardrails
 

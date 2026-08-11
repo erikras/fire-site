@@ -11,6 +11,16 @@ yarn
 yarn dev
 ```
 
+## Hosting
+
+Cloudflare is the default hosting and DNS platform. Production is a static Next.js export deployed with Cloudflare Workers Static Assets:
+
+```bash
+yarn deploy:cloudflare
+```
+
+Do not deploy this project to Vercel unless Erik explicitly overrides the hosting policy.
+
 ## Quality gate
 
 ```bash

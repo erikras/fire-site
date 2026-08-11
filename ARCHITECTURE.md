@@ -8,6 +8,7 @@ This repository owns the public Store Canary / WooCommerce Daily Ops explanation
 
 - Next.js App Router
 - One statically rendered public product page at `storecanary.app`
+- Static export deployed with Cloudflare Workers Static Assets; Cloudflare is the default hosting and DNS platform
 - No database, cookies, analytics, telemetry, or third-party browser scripts
 - Email application link only; no submitted data passes through this application
 - Unrelated Fire products are intentionally not published from this domain

@@ -1,5 +1,5 @@
 {
-  "name": "fire-site",
+  "name": "store-canary",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "deploy:cloudflare": "yarn build && npx wrangler@4.120.1 deploy"
   },
   "dependencies": {
     "next": "16.3.0",
