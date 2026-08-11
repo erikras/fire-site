@@ -2,12 +2,12 @@
 
 ## Current phase
 
-Production launch of the Store Canary marketing site for WooCommerce Daily Ops: one responsive public landing page, conservative private-beta claims, a structured email application path, and no browser-side data collection.
+Live in production on Cloudflare: one responsive Store Canary landing page for WooCommerce Daily Ops, conservative private-beta claims, a structured email application path, and no browser-side data collection.
 
 ## Domain
 
 - Canonical: `https://storecanary.app`
-- `www.storecanary.app` should redirect to the canonical apex.
+- `www.storecanary.app` redirects to the canonical apex.
 
 ## Hosting policy
 
@@ -16,13 +16,15 @@ Production launch of the Store Canary marketing site for WooCommerce Daily Ops: 
 
 ## Next task
 
-Deploy the verified site from Cloudflare Workers Static Assets, activate `storecanary.app` in Cloudflare DNS, attach the apex and `www` custom domains, confirm HTTPS, public metadata, application CTA, and external accessibility behavior, then recruit the first qualified Daily Ops private-beta participant.
+Configure `storecanary.app` as a secondary domain in the existing Google Workspace, publish authenticated mail DNS through Cloudflare, update the beta CTA to the new address, then recruit the first qualified Daily Ops private-beta participant.
 
 ## Deployment evidence
 
 - Cloudflare Worker custom domains: `https://storecanary.app` and `https://www.storecanary.app`
-- Cloudflare version: `8209c212-367d-4c0a-b559-a20f3393e63c`
-- `www` is handled at the edge with a tested `308` redirect to the canonical apex.
+- Cloudflare version: `4f0d74ec-6284-4307-adb4-78897f4f6ef4`
+- Public verification: apex HTTPS `200`; HTTP and `www` return canonical `308` redirects.
+- Canonical metadata, `robots.txt`, `sitemap.xml`, private-beta CTA, and absence of public ZIP links were verified externally.
+- TLS covers the apex and `www` through Google Trust Services.
 - The temporary Vercel project was deleted after Cloudflare deployment.
 
 ## Guardrails
