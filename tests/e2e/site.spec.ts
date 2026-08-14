@@ -656,7 +656,7 @@ test("the landing page keeps its semantic structure and descriptive link names",
   const headingLevels = await page
     .getByRole("heading")
     .evaluateAll((headings) => headings.map((heading) => Number(heading.tagName.slice(1))));
-  expect(headingLevels[0], "the heading outline should start with an h1").toBe(1);
+  expect(headingLevels[0], "the heading sequence should start with an h1").toBe(1);
   for (let index = 1; index < headingLevels.length; index += 1) {
     expect(
       headingLevels[index],
