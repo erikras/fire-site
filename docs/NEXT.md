@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Add a browser privacy-boundary contract that catches forms, third-party scripts or requests, cookies, and client-side storage.
-2. Expand the product-copy contracts to cover every supported exception and prohibited claim in `docs/MARKETING.md`, not only availability language.
+1. Expand the product-copy contracts to cover every supported exception and prohibited claim in `docs/MARKETING.md`, not only availability language.
 
 ## Waits on Erik
 
