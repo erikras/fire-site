@@ -23,7 +23,7 @@ async function expectReflowContractToHold(page: Page) {
         .join("");
       return `${element.tagName.toLowerCase()}${id}${classes}`;
     };
-    const isVisible = (element: Element) => {
+    const isRendered = (element: Element) => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       return (
@@ -47,7 +47,7 @@ async function expectReflowContractToHold(page: Page) {
     }
 
     const elements = Array.from(contentRoot.querySelectorAll("header *, main *, footer *")).filter(
-      isVisible,
+      isRendered,
     );
 
     for (const element of elements) {
@@ -78,7 +78,7 @@ async function expectReflowContractToHold(page: Page) {
         continue;
       }
 
-      const children = Array.from(element.children).filter(isVisible);
+      const children = Array.from(element.children).filter(isRendered);
       for (let firstIndex = 0; firstIndex < children.length; firstIndex += 1) {
         for (let secondIndex = firstIndex + 1; secondIndex < children.length; secondIndex += 1) {
           if (
@@ -103,7 +103,8 @@ async function expectReflowContractToHold(page: Page) {
         )
         .flatMap((node) => {
           const range = document.createRange();
-          range.selectNodeContents(node);
+          range.setStart(node, 0);
+          range.setEnd(node, node.length);
           return Array.from(range.getClientRects()).map((rect) => ({ element, rect }));
         }),
     );
