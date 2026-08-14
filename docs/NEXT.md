@@ -2,7 +2,9 @@
 
 ## Unblocked
 
-1. Add Playwright checks for the landing page's focus states and CTA usability under reduced-motion and forced-colors preferences.
+1. Add Playwright reflow coverage at a 320 CSS-pixel viewport and with 200% text sizing, checking that content does not overlap or clip and both access CTAs remain reachable.
+2. Apply the WCAG text-spacing overrides in Playwright and verify that headings, preview rows, request details, and CTAs remain readable without truncation.
+3. Add a JavaScript-disabled Playwright check that the static landing page retains its approved copy, skip link, in-page request path, and structured email CTA.
 
 ## Waits on Erik
 

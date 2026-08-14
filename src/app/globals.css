@@ -432,6 +432,42 @@ a:focus-visible {
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+  .button:hover {
+    transform: none;
+  }
+}
+@media (forced-colors: active) {
+  .skip-link {
+    border-color: LinkText;
+    background: Canvas;
+    color: LinkText;
+  }
+  .button,
+  .button:hover {
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  .button:focus-visible,
+  a:focus-visible {
+    outline-color: Highlight;
+  }
+  .product-preview {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+  .application-card {
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  .signal {
+    border: 1px solid CanvasText;
+    background: CanvasText;
   }
 }
