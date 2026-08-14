@@ -27,6 +27,8 @@ const securityHeaders = {
   "X-Frame-Options": "DENY",
 } as const;
 
+const allowedMethods = new Set(["GET", "HEAD"]);
+
 function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
 
@@ -43,6 +45,15 @@ function withSecurityHeaders(response: Response): Response {
 
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (!allowedMethods.has(request.method)) {
+      return withSecurityHeaders(
+        new Response(null, {
+          headers: { Allow: "GET, HEAD" },
+          status: 405,
+        }),
+      );
+    }
+
     const url = new URL(request.url);
     const mustRedirect = url.protocol === "http:" || url.hostname === "www.storecanary.app";
 
