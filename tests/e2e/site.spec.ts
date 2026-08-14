@@ -277,6 +277,156 @@ async function expectAccessCtasToMeetTargetSize(page: Page) {
   }
 }
 
+async function expectFocusedControlNotToBeObscured(control: Locator, label: string) {
+  await expect(control, `${label} should be rendered`).toBeVisible();
+  await control.focus();
+  await expect(control, `${label} should receive focus`).toBeFocused();
+  await control.scrollIntoViewIfNeeded();
+
+  const result = await control.evaluate((element) => {
+    type Box = { bottom: number; left: number; right: number; top: number };
+
+    const tolerance = 1;
+    const clippedOverflow = ["cl", "ip"].join("");
+    const concealedOverflow = ["hid", "den"].join("");
+    const clippingValues = new Set([clippedOverflow, concealedOverflow, "auto", "scroll"]);
+    const describe = (candidate: Element) => {
+      const id = candidate.id ? `#${candidate.id}` : "";
+      const classes = Array.from(candidate.classList)
+        .map((className) => `.${className}`)
+        .join("");
+      return `${candidate.tagName.toLowerCase()}${id}${classes}`;
+    };
+    const intersect = (first: Box, second: Box, clipX = true, clipY = true): Box | null => {
+      const intersection = {
+        bottom: clipY ? Math.min(first.bottom, second.bottom) : first.bottom,
+        left: clipX ? Math.max(first.left, second.left) : first.left,
+        right: clipX ? Math.min(first.right, second.right) : first.right,
+        top: clipY ? Math.max(first.top, second.top) : first.top,
+      };
+
+      return intersection.right - intersection.left > tolerance &&
+        intersection.bottom - intersection.top > tolerance
+        ? intersection
+        : null;
+    };
+    const subtract = (region: Box, cover: Box): Box[] => {
+      const overlap = intersect(region, cover);
+      if (!overlap) {
+        return [region];
+      }
+
+      return [
+        { ...region, bottom: overlap.top },
+        { ...region, top: overlap.bottom },
+        { bottom: overlap.bottom, left: region.left, right: overlap.left, top: overlap.top },
+        { bottom: overlap.bottom, left: overlap.right, right: region.right, top: overlap.top },
+      ].filter(
+        (remainder) =>
+          remainder.right - remainder.left > tolerance &&
+          remainder.bottom - remainder.top > tolerance,
+      );
+    };
+
+    const bounds = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    const outlineWidth =
+      style.outlineStyle === "none" ? 0 : Number.parseFloat(style.outlineWidth) || 0;
+    const outlineOffset = Number.parseFloat(style.outlineOffset) || 0;
+    const focusExpansion = Math.max(0, outlineWidth + outlineOffset);
+    const focusBounds: Box = {
+      bottom: bounds.bottom + focusExpansion,
+      left: bounds.left - focusExpansion,
+      right: bounds.right + focusExpansion,
+      top: bounds.top - focusExpansion,
+    };
+    const viewport: Box = {
+      bottom: window.innerHeight,
+      left: 0,
+      right: window.innerWidth,
+      top: 0,
+    };
+    let visibleFocusArea = intersect(focusBounds, viewport);
+    const clippingAncestors: string[] = [];
+
+    for (
+      let ancestor = element.parentElement;
+      ancestor && visibleFocusArea;
+      ancestor = ancestor.parentElement
+    ) {
+      const ancestorStyle = getComputedStyle(ancestor);
+      const clipsX = clippingValues.has(ancestorStyle.overflowX);
+      const clipsY = clippingValues.has(ancestorStyle.overflowY);
+      if (!clipsX && !clipsY) {
+        continue;
+      }
+
+      clippingAncestors.push(describe(ancestor));
+      visibleFocusArea = intersect(
+        visibleFocusArea,
+        ancestor.getBoundingClientRect(),
+        clipsX,
+        clipsY,
+      );
+    }
+
+    if (!visibleFocusArea) {
+      return {
+        clippingAncestors,
+        coveringChrome: [] as string[],
+        hasVisibleFocusArea: false,
+      };
+    }
+
+    let uncoveredRegions = [visibleFocusArea];
+    const coveringChrome: string[] = [];
+    const chrome = Array.from(document.querySelectorAll("body *")).filter((candidate) => {
+      if (candidate === element || candidate.contains(element) || element.contains(candidate)) {
+        return false;
+      }
+
+      const candidateStyle = getComputedStyle(candidate);
+      const candidateBounds = candidate.getBoundingClientRect();
+      return (
+        (candidateStyle.position === "fixed" || candidateStyle.position === "sticky") &&
+        candidateStyle.display !== "none" &&
+        candidateStyle.visibility !== concealedOverflow &&
+        Number.parseFloat(candidateStyle.opacity) !== 0 &&
+        candidateBounds.width > tolerance &&
+        candidateBounds.height > tolerance
+      );
+    });
+
+    for (const candidate of chrome) {
+      const candidateBounds = candidate.getBoundingClientRect();
+      const overlapsFocusArea = uncoveredRegions.some((region) =>
+        Boolean(intersect(region, candidateBounds)),
+      );
+      const nextRegions = uncoveredRegions.flatMap((region) => subtract(region, candidateBounds));
+      if (overlapsFocusArea) {
+        coveringChrome.push(describe(candidate));
+      }
+      uncoveredRegions = nextRegions;
+      if (uncoveredRegions.length === 0) {
+        break;
+      }
+    }
+
+    return {
+      clippingAncestors,
+      coveringChrome,
+      hasVisibleFocusArea: uncoveredRegions.length > 0,
+    };
+  });
+
+  expect(
+    result.hasVisibleFocusArea,
+    `${label} focus bounds should not be fully obscured; clipping ancestors: ${
+      result.clippingAncestors.join(", ") || "none"
+    }; fixed/sticky chrome: ${result.coveringChrome.join(", ") || "none"}`,
+  ).toBe(true);
+}
+
 async function expectKeyboardAccessPathToWork(page: Page) {
   await page.goto("/");
 
@@ -751,6 +901,57 @@ for (const targetSizeMode of [
 
     expect(await page.evaluate(() => window.innerWidth)).toBe(targetSizeMode.viewport.width);
     await expectAccessCtasToMeetTargetSize(page);
+  });
+}
+
+for (const focusObscurationMode of [
+  {
+    name: "desktop",
+    navigationLinks: ["How it works", "Request access"],
+    viewport: { width: 1280, height: 720 },
+  },
+  {
+    name: "320 CSS-pixel reflow",
+    navigationLinks: ["Request access"],
+    viewport: { width: 320, height: 720 },
+  },
+]) {
+  test(`focused controls are not fully obscured at ${focusObscurationMode.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(focusObscurationMode.viewport);
+    await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
+
+    expect(await page.evaluate(() => window.innerWidth)).toBe(focusObscurationMode.viewport.width);
+
+    const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+    const main = page.getByRole("main");
+    const controls: [string, Locator][] = [
+      ["skip link", page.getByRole("link", { name: "Skip to main content" })],
+      ...focusObscurationMode.navigationLinks.map(
+        (name) =>
+          [
+            `primary navigation “${name}” link`,
+            navigation.getByRole("link", { name, exact: true }),
+          ] as [string, Locator],
+      ),
+      ["hero Request access CTA", main.getByRole("link", { name: "Request access", exact: true })],
+      [
+        "Email the access request CTA",
+        main.getByRole("link", { name: "Email the access request", exact: true }),
+      ],
+    ];
+
+    if (focusObscurationMode.viewport.width === 320) {
+      await expect(
+        navigation.getByRole("link", { name: "How it works", exact: true }),
+      ).toBeHidden();
+    }
+
+    for (const [label, control] of controls) {
+      await expectFocusedControlNotToBeObscured(control, label);
+    }
   });
 }
 
