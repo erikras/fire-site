@@ -44,8 +44,8 @@ export const products: Product[] = [
       "Guided staging-site installation",
     ],
     preview: {
-      label: "Today’s exceptions",
-      headline: "Three things need a human",
+      label: "Today’s checks",
+      headline: "Two things need a human",
       rows: [
         { label: "Paid order stuck in processing", value: "2d 7h", tone: "hot" },
         { label: "Failed payment", value: "$184.00", tone: "warm" },
