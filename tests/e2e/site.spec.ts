@@ -23,6 +23,24 @@ test("Store Canary presents Daily Ops as an established product", async ({ page 
   await expect(page.getByText(/sales calls?/i)).toHaveCount(0);
 });
 
+test("keyboard users can skip the navigation and reach the main content", async ({ page }) => {
+  await page.goto("/");
+
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeInViewport();
+
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main$/);
+
+  const main = page.getByRole("main");
+  await expect(main).toBeFocused();
+  await expect(
+    main.getByRole("heading", { name: /quiet morning check for a busy WooCommerce store/i }),
+  ).toBeVisible();
+});
+
 test("the landing page emits canonical Store Canary metadata", async ({ page }) => {
   await page.goto("/");
 

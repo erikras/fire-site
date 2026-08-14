@@ -22,8 +22,11 @@ function contactHref(product: Product) {
 export function ProductLanding({ product }: { product: Product }) {
   return (
     <>
+      <a className="skip-link" href="#main">
+        Skip to main content
+      </a>
       <SiteHeader />
-      <main>
+      <main id="main" tabIndex={-1}>
         <section className="product-hero section-shell">
           <div className="product-copy">
             <span className="stage-badge">{product.stage}</span>
