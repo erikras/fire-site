@@ -6,7 +6,13 @@ import { fileURLToPath } from "node:url";
 
 const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
 const canonicalOrigin = "https://storecanary.app";
-const starterAssetNames = new Set(["file.svg", "globe.svg", "next.svg", "vercel.svg", "window.svg"]);
+const starterAssetNames = new Set([
+  "file.svg",
+  "globe.svg",
+  "next.svg",
+  "vercel.svg",
+  "window.svg",
+]);
 
 async function inventory(directory, relativeDirectory = "") {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -166,7 +172,12 @@ test("landing links and resources resolve entirely within the static export", as
 
   const htmlCache = new Map([[landingFile, html]]);
   for (const { attribute, value } of references) {
-    const { targetFile, url } = resolveExportReference(value, landingFile, exportedFiles, accessHref);
+    const { targetFile, url } = resolveExportReference(
+      value,
+      landingFile,
+      exportedFiles,
+      accessHref,
+    );
 
     if (attribute !== "href" || !url.hash || !targetFile) {
       continue;
