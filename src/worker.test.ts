@@ -50,14 +50,36 @@ describe("Store Canary edge handler", () => {
     expect(assets.fetch).not.toHaveBeenCalled();
   });
 
-  it("serves apex and workers.dev requests from static assets", async () => {
-    for (const url of ["https://storecanary.app/", "https://store-canary.formnerd.workers.dev/"]) {
-      const request = new Request(url);
-      const response = await worker.fetch(request, { ASSETS: assets });
-      expect(response.status).toBe(200);
-      expect(assets.fetch).toHaveBeenCalledWith(request);
+  it("serves GET and HEAD requests from static assets", async () => {
+    for (const method of ["GET", "HEAD"]) {
+      for (const url of [
+        "https://storecanary.app/",
+        "https://store-canary.formnerd.workers.dev/",
+      ]) {
+        const request = new Request(url, { method });
+        const response = await worker.fetch(request, { ASSETS: assets });
+        expect(response.status).toBe(200);
+        expect(assets.fetch).toHaveBeenCalledWith(request);
+        expectSecurityHeaders(response);
+      }
+    }
+  });
+
+  it("rejects methods outside GET and HEAD with a deterministic 405", async () => {
+    for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
+      const response = await worker.fetch(
+        new Request("http://www.storecanary.app/mutating-path", { method }),
+        { ASSETS: assets },
+      );
+
+      expect(response.status).toBe(405);
+      expect(response.headers.get("allow")).toBe("GET, HEAD");
+      expect(response.headers.get("location")).toBeNull();
+      expect(await response.text()).toBe("");
       expectSecurityHeaders(response);
     }
+
+    expect(assets.fetch).not.toHaveBeenCalled();
   });
 
   it("preserves the asset response while replacing its security policy", async () => {
