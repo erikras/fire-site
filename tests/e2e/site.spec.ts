@@ -15,7 +15,12 @@ test("Store Canary presents Daily Ops as an established product", async ({ page 
     "href",
     /^mailto:homer\.agent\.erik@gmail\.com\?subject=/,
   );
+  await expect(page.getByText("Store URL")).toBeVisible();
+  await expect(page.getByText("Your role")).toBeVisible();
+  await expect(page.getByText(/WooCommerce version, if known/i)).toBeVisible();
+  await expect(page.getByText("homer.agent.erik@gmail.com")).toBeVisible();
   await expect(page.getByText(/beta|early access|waitlist/i)).toHaveCount(0);
+  await expect(page.getByText(/sales calls?/i)).toHaveCount(0);
 });
 
 test("the site does not expose unrelated Fire product pages", async ({ page }) => {
