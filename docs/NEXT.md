@@ -2,9 +2,8 @@
 
 ## Unblocked
 
-1. Add a Playwright focus-obscuration contract for the skip link, navigation, and both access CTAs at desktop and narrow reflow widths.
-2. Add a complete keyboard focus-order and no-trap contract covering the brand, primary navigation, and both access CTAs.
-3. Add a default-color focus-indicator visibility contract, including the 3:1 adjacent-color ratio, for the skip link, primary navigation, and both access CTAs.
+1. Add a complete keyboard focus-order and no-trap contract covering the brand, primary navigation, and both access CTAs.
+2. Add a default-color focus-indicator visibility contract, including the 3:1 adjacent-color ratio, for the skip link, primary navigation, and both access CTAs.
 
 ## Waits on Erik
 
