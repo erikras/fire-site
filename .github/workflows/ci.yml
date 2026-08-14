@@ -26,5 +26,6 @@ jobs:
       - run: yarn format:check
       - run: yarn build
       - run: yarn test:export
+      - run: yarn test:asset-size
       - run: yarn test:wrangler
       - run: yarn audit --level high
