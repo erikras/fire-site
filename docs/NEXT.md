@@ -2,7 +2,9 @@
 
 ## Unblocked
 
-1. Add a local Wrangler integration check against `out/` for Static Assets routing, canonical redirects, and the Worker response wrapper without deploying.
+1. Add an export integrity check that resolves every local `href`, `src`, and preload target in generated HTML against `out/`.
+2. Add explicit per-file and aggregate size budgets for the production HTML, CSS, JavaScript, and font export.
+3. Add Playwright checks for the landing page's focus states and CTA usability under reduced-motion and forced-colors preferences.
 
 ## Waits on Erik
 

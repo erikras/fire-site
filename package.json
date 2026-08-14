@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:export": "node --test tests/static-export.test.mjs",
+    "test:wrangler": "node --test tests/wrangler-integration.test.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -40,7 +41,8 @@
     "serve": "^14.2.6",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "4.1.1"
+    "vitest": "4.1.1",
+    "wrangler": "^4.123.0"
   },
   "packageManager": "yarn@1.22.22"
 }
