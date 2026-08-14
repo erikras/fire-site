@@ -1,5 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import {
+  prohibitedMarketingClaims,
+  supportedDailyOpsExceptions,
+} from "../../tests/marketing-copy-contract";
 import Home from "./page";
 
 describe("Store Canary landing page", () => {
@@ -13,6 +17,23 @@ describe("Store Canary landing page", () => {
     expect(screen.getAllByText(/WooCommerce Daily Ops/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("Margin Monitor")).not.toBeInTheDocument();
     expect(screen.queryByText("Fire HQ")).not.toBeInTheDocument();
+  });
+
+  it("renders every supported Daily Ops exception", () => {
+    render(<Home />);
+
+    for (const exception of supportedDailyOpsExceptions) {
+      expect(screen.getByText(new RegExp(exception, "i"))).toBeInTheDocument();
+    }
+  });
+
+  it("does not make prohibited marketing claims", () => {
+    const { container } = render(<Home />);
+    const publicCopy = container.textContent ?? "";
+
+    for (const { category, pattern } of prohibitedMarketingClaims) {
+      expect(publicCopy, category).not.toMatch(pattern);
+    }
   });
 
   it("uses an established-product access request rather than beta language", () => {
@@ -30,7 +51,9 @@ describe("Store Canary landing page", () => {
     expect(screen.getByText("Your role")).toBeInTheDocument();
     expect(screen.getByText(/WooCommerce version, if known/i)).toBeInTheDocument();
     expect(screen.getByText("homer.agent.erik@gmail.com")).toBeInTheDocument();
-    expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/private beta|beta|early access|waitlist|newly launched|launching soon/i),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/asynchronous support|sales calls?/i)).not.toBeInTheDocument();
   });
 });
