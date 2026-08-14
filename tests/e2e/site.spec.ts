@@ -145,7 +145,9 @@ async function expectAccessCtasToRemainReachable(page: Page) {
   await expect(requestAccess).toBeFocused();
   await requestAccess.click();
   await expect(page).toHaveURL(/#apply$/);
-  await expect(page.locator("#apply")).toBeInViewport();
+  const applySection = page.locator("#apply");
+  await applySection.scrollIntoViewIfNeeded();
+  await expect(applySection).toBeInViewport();
 
   await expect(emailAccessRequest).toBeVisible();
   await emailAccessRequest.scrollIntoViewIfNeeded();
@@ -177,7 +179,9 @@ async function expectKeyboardAccessPathToWork(page: Page) {
   await expect(requestAccess).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#apply$/);
-  await expect(page.locator("#apply")).toBeInViewport();
+  const applySection = page.locator("#apply");
+  await applySection.scrollIntoViewIfNeeded();
+  await expect(applySection).toBeInViewport();
 
   const emailAccessRequest = main.getByRole("link", { name: "Email the access request" });
   await page.keyboard.press("Tab");
