@@ -12,6 +12,7 @@ async function expectReflowContractToHold(page: Page) {
       return ["The document has no body"];
     }
 
+    // Tailwind scans test sources, so split layout keywords to avoid emitting test-only utilities.
     const clippedOverflow = ["cl", "ip"].join("");
     const concealedOverflow = ["hid", "den"].join("");
     const flexDisplay = ["fl", "ex"].join("");
@@ -469,12 +470,12 @@ for (const reflowMode of [
   {
     name: "at a 320 CSS-pixel viewport",
     viewport: { width: 320, height: 720 },
-    textSize: "100%",
+    textScale: 1,
   },
   {
     name: "with 200% text sizing",
     viewport: { width: 1280, height: 720 },
-    textSize: "200%",
+    textScale: 2,
   },
 ]) {
   test(`content reflows and both access CTAs remain reachable ${reflowMode.name}`, async ({
@@ -482,10 +483,20 @@ for (const reflowMode of [
   }) => {
     await page.setViewportSize(reflowMode.viewport);
     await page.goto("/");
-    await page.addStyleTag({ content: `html { font-size: ${reflowMode.textSize} !important; }` });
+    const defaultTextSize = await page.evaluate(() =>
+      Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+    );
+    await page.addStyleTag({
+      content: `html { font-size: ${reflowMode.textScale * 100}% !important; }`,
+    });
     await page.evaluate(() => document.fonts.ready);
 
     expect(await page.evaluate(() => window.innerWidth)).toBe(reflowMode.viewport.width);
+    expect(
+      await page.evaluate(() =>
+        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      ),
+    ).toBe(defaultTextSize * reflowMode.textScale);
     await expectReflowContractToHold(page);
     await expectAccessCtasToRemainReachable(page);
   });
