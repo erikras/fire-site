@@ -6,6 +6,41 @@ type Env = {
   ASSETS: AssetsBinding;
 };
 
+const securityHeaders = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "base-uri 'none'",
+    "connect-src 'self'",
+    "font-src 'self'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+    "img-src 'self' data:",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "upgrade-insecure-requests",
+  ].join("; "),
+  "Permissions-Policy":
+    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+  "Referrer-Policy": "no-referrer",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+} as const;
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  for (const [name, value] of Object.entries(securityHeaders)) {
+    headers.set(name, value);
+  }
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -14,10 +49,10 @@ const worker = {
     if (mustRedirect) {
       url.protocol = "https:";
       url.hostname = "storecanary.app";
-      return Response.redirect(url.toString(), 308);
+      return withSecurityHeaders(Response.redirect(url.toString(), 308));
     }
 
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 };
 
