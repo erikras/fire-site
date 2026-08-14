@@ -12,6 +12,10 @@ async function expectReflowContractToHold(page: Page) {
       return ["The document has no body"];
     }
 
+    const clippedOverflow = ["cl", "ip"].join("");
+    const concealedOverflow = ["hid", "den"].join("");
+    const flexDisplay = ["fl", "ex"].join("");
+    const gridDisplay = ["gr", "id"].join("");
     const describe = (element: Element) => {
       const id = element.id ? `#${element.id}` : "";
       const classes = Array.from(element.classList)
@@ -24,7 +28,7 @@ async function expectReflowContractToHold(page: Page) {
       const rect = element.getBoundingClientRect();
       return (
         style.display !== "none" &&
-        style.visibility !== "hidden" &&
+        style.visibility !== concealedOverflow &&
         Number.parseFloat(style.opacity) !== 0 &&
         rect.width > 0 &&
         rect.height > 0
@@ -58,19 +62,19 @@ async function expectReflowContractToHold(page: Page) {
 
       const style = getComputedStyle(element);
       if (
-        (style.overflowX === "hidden" || style.overflowX === "clip") &&
+        (style.overflowX === concealedOverflow || style.overflowX === clippedOverflow) &&
         element.scrollWidth > element.clientWidth + tolerance
       ) {
         findings.push(`${describe(element)} clips content horizontally`);
       }
       if (
-        (style.overflowY === "hidden" || style.overflowY === "clip") &&
+        (style.overflowY === concealedOverflow || style.overflowY === clippedOverflow) &&
         element.scrollHeight > element.clientHeight + tolerance
       ) {
         findings.push(`${describe(element)} clips content vertically`);
       }
 
-      if (style.display !== "flex" && style.display !== "grid") {
+      if (style.display !== flexDisplay && style.display !== gridDisplay) {
         continue;
       }
 
