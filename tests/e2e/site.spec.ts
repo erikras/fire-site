@@ -256,6 +256,27 @@ async function expectAccessCtasToRemainReachable(page: Page) {
   );
 }
 
+async function expectAccessCtasToMeetTargetSize(page: Page) {
+  const minimumTargetSize = 24;
+  const main = page.getByRole("main");
+  const accessCtas = [
+    ["Request access", main.getByRole("link", { name: "Request access", exact: true })],
+    [
+      "Email the access request",
+      main.getByRole("link", { name: "Email the access request", exact: true }),
+    ],
+  ] as const;
+
+  for (const [name, cta] of accessCtas) {
+    await expect(cta).toBeVisible();
+    const bounds = await cta.boundingBox();
+
+    expect(bounds, `${name} should have rendered bounds`).not.toBeNull();
+    expect(bounds!.width, `${name} target width`).toBeGreaterThanOrEqual(minimumTargetSize);
+    expect(bounds!.height, `${name} target height`).toBeGreaterThanOrEqual(minimumTargetSize);
+  }
+}
+
 async function expectKeyboardAccessPathToWork(page: Page) {
   await page.goto("/");
 
@@ -673,6 +694,22 @@ test("WCAG text spacing keeps key copy and both access CTAs readable", async ({ 
   await expectReflowContractToHold(page);
   await expectAccessCtasToRemainReachable(page);
 });
+
+for (const targetSizeMode of [
+  { name: "desktop", viewport: { width: 1280, height: 720 } },
+  { name: "320 CSS-pixel reflow", viewport: { width: 320, height: 720 } },
+]) {
+  test(`both access CTAs meet the WCAG 2.5.8 target-size minimum at ${targetSizeMode.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(targetSizeMode.viewport);
+    await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
+
+    expect(await page.evaluate(() => window.innerWidth)).toBe(targetSizeMode.viewport.width);
+    await expectAccessCtasToMeetTargetSize(page);
+  });
+}
 
 for (const reflowMode of [
   {
