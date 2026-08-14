@@ -1,6 +1,37 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { prohibitedMarketingClaims, supportedDailyOpsExceptions } from "../marketing-copy-contract";
+
+async function expectKeyboardAccessPathToWork(page: Page) {
+  await page.goto("/");
+
+  const main = page.getByRole("main");
+  await expect(main).toHaveCount(1);
+
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main$/);
+  await expect(main).toBeFocused();
+
+  const requestAccess = main.getByRole("link", { name: "Request access" });
+  await page.keyboard.press("Tab");
+  await expect(requestAccess).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#apply$/);
+  await expect(page.locator("#apply")).toBeInViewport();
+
+  const emailAccessRequest = main.getByRole("link", { name: "Email the access request" });
+  await page.keyboard.press("Tab");
+  await expect(emailAccessRequest).toBeFocused();
+  await expect(emailAccessRequest).toBeInViewport();
+  await expect(emailAccessRequest).toHaveAttribute(
+    "href",
+    /^mailto:homer\.agent\.erik@gmail\.com\?subject=/,
+  );
+}
 
 test("Store Canary presents Daily Ops as an established product", async ({ page }) => {
   await page.goto("/");
@@ -55,6 +86,62 @@ test("keyboard users can skip the navigation and reach the main content", async 
   await expect(
     main.getByRole("heading", { name: /quiet morning check for a busy WooCommerce store/i }),
   ).toBeVisible();
+});
+
+test("reduced motion keeps the keyboard access path static and usable", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expectKeyboardAccessPathToWork(page);
+
+  expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
+    true,
+  );
+
+  const requestAccess = page.getByRole("main").getByRole("link", { name: "Request access" });
+  await requestAccess.hover();
+  expect(
+    await requestAccess.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        animationName: style.animationName,
+        transform: style.transform,
+        transitionDuration: style.transitionDuration,
+      };
+    }),
+  ).toEqual({
+    animationName: "none",
+    transform: "none",
+    transitionDuration: "0s",
+  });
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior)).toBe(
+    "auto",
+  );
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+});
+
+test("forced colors preserves landmarks, focus, CTAs, and textual status cues", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await expectKeyboardAccessPathToWork(page);
+
+  expect(await page.evaluate(() => matchMedia("(forced-colors: active)").matches)).toBe(true);
+
+  const emailAccessRequest = page.getByRole("link", { name: "Email the access request" });
+  const focusStyle = await emailAccessRequest.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).toBe("solid");
+  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(3);
+
+  const previewRows = page.locator(".preview-row");
+  await expect(previewRows).toHaveCount(3);
+  for (const row of await previewRows.all()) {
+    await expect(row.locator(".signal")).toHaveAttribute("aria-hidden", "true");
+    await expect(row.locator("span")).not.toHaveText("");
+    await expect(row.locator("strong")).not.toHaveText("");
+  }
+  await expect(page.locator(".product-preview")).toHaveCSS("box-shadow", "none");
 });
 
 test("the browser privacy boundary permits only the email CTA", async ({
