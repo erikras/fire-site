@@ -2,9 +2,8 @@
 
 ## Unblocked
 
-1. Reconcile the Daily Ops preview headline with the number and status of the checks shown, then cover the example with a regression test.
-2. Remove obsolete multi-product landing-page styles that are no longer used by the single-product site.
-3. Add contract tests for canonical metadata, `robots.txt`, and `sitemap.xml` so public-discovery details cannot drift unnoticed.
+1. Remove obsolete multi-product landing-page styles that are no longer used by the single-product site.
+2. Add contract tests for canonical metadata, `robots.txt`, and `sitemap.xml` so public-discovery details cannot drift unnoticed.
 
 ## Waits on Erik
 
