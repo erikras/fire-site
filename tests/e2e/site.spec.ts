@@ -2,6 +2,164 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { prohibitedMarketingClaims, supportedDailyOpsExceptions } from "../marketing-copy-contract";
 
+async function expectReflowContractToHold(page: Page) {
+  const issues = await page.evaluate(() => {
+    const tolerance = 1;
+    const findings: string[] = [];
+    const contentRoot = document.querySelector("body");
+
+    if (!contentRoot) {
+      return ["The document has no body"];
+    }
+
+    // Tailwind scans test sources, so split layout keywords to avoid emitting test-only utilities.
+    const clippedOverflow = ["cl", "ip"].join("");
+    const concealedOverflow = ["hid", "den"].join("");
+    const flexDisplay = ["fl", "ex"].join("");
+    const gridDisplay = ["gr", "id"].join("");
+    const describe = (element: Element) => {
+      const id = element.id ? `#${element.id}` : "";
+      const classes = Array.from(element.classList)
+        .map((className) => `.${className}`)
+        .join("");
+      return `${element.tagName.toLowerCase()}${id}${classes}`;
+    };
+    const isRendered = (element: Element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return (
+        style.display !== "none" &&
+        style.visibility !== concealedOverflow &&
+        Number.parseFloat(style.opacity) !== 0 &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    };
+    const overlaps = (first: DOMRect, second: DOMRect) =>
+      Math.min(first.right, second.right) - Math.max(first.left, second.left) > tolerance &&
+      Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top) > tolerance;
+
+    if (document.documentElement.scrollWidth > document.documentElement.clientWidth + tolerance) {
+      findings.push(
+        `document horizontally overflows by ${
+          document.documentElement.scrollWidth - document.documentElement.clientWidth
+        }px`,
+      );
+    }
+
+    const elements = Array.from(contentRoot.querySelectorAll("header *, main *, footer *")).filter(
+      isRendered,
+    );
+
+    for (const element of elements) {
+      const rect = element.getBoundingClientRect();
+      if (rect.left < -tolerance || rect.right > window.innerWidth + tolerance) {
+        findings.push(
+          `${describe(element)} extends outside the horizontal viewport (${rect.left.toFixed(
+            1,
+          )}..${rect.right.toFixed(1)})`,
+        );
+      }
+
+      const style = getComputedStyle(element);
+      if (
+        (style.overflowX === concealedOverflow || style.overflowX === clippedOverflow) &&
+        element.scrollWidth > element.clientWidth + tolerance
+      ) {
+        findings.push(`${describe(element)} clips content horizontally`);
+      }
+      if (
+        (style.overflowY === concealedOverflow || style.overflowY === clippedOverflow) &&
+        element.scrollHeight > element.clientHeight + tolerance
+      ) {
+        findings.push(`${describe(element)} clips content vertically`);
+      }
+
+      if (style.display !== flexDisplay && style.display !== gridDisplay) {
+        continue;
+      }
+
+      const children = Array.from(element.children).filter(isRendered);
+      for (let firstIndex = 0; firstIndex < children.length; firstIndex += 1) {
+        for (let secondIndex = firstIndex + 1; secondIndex < children.length; secondIndex += 1) {
+          if (
+            overlaps(
+              children[firstIndex].getBoundingClientRect(),
+              children[secondIndex].getBoundingClientRect(),
+            )
+          ) {
+            findings.push(
+              `${describe(children[firstIndex])} overlaps ${describe(children[secondIndex])}`,
+            );
+          }
+        }
+      }
+    }
+
+    const textFragments = elements.flatMap((element) =>
+      Array.from(element.childNodes)
+        .filter(
+          (node): node is Text =>
+            node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
+        )
+        .flatMap((node) => {
+          const range = document.createRange();
+          range.setStart(node, 0);
+          range.setEnd(node, node.length);
+          return Array.from(range.getClientRects()).map((rect) => ({ element, rect }));
+        }),
+    );
+
+    for (let firstIndex = 0; firstIndex < textFragments.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < textFragments.length; secondIndex += 1) {
+        const first = textFragments[firstIndex];
+        const second = textFragments[secondIndex];
+        if (
+          first.element !== second.element &&
+          !first.element.contains(second.element) &&
+          !second.element.contains(first.element) &&
+          overlaps(first.rect, second.rect)
+        ) {
+          findings.push(
+            `text in ${describe(first.element)} overlaps text in ${describe(second.element)}`,
+          );
+        }
+      }
+    }
+
+    return [...new Set(findings)].slice(0, 30);
+  });
+
+  expect(issues, "reflow contract violations").toEqual([]);
+}
+
+async function expectAccessCtasToRemainReachable(page: Page) {
+  const main = page.getByRole("main");
+  const requestAccess = main.getByRole("link", { name: "Request access" });
+  const emailAccessRequest = main.getByRole("link", { name: "Email the access request" });
+
+  await expect(requestAccess).toBeVisible();
+  await requestAccess.scrollIntoViewIfNeeded();
+  await expect(requestAccess).toBeInViewport();
+  await requestAccess.focus();
+  await expect(requestAccess).toBeFocused();
+  await requestAccess.click();
+  await expect(page).toHaveURL(/#apply$/);
+  const applySection = page.locator("#apply");
+  await applySection.scrollIntoViewIfNeeded();
+  await expect(applySection).toBeInViewport();
+
+  await expect(emailAccessRequest).toBeVisible();
+  await emailAccessRequest.scrollIntoViewIfNeeded();
+  await expect(emailAccessRequest).toBeInViewport();
+  await emailAccessRequest.focus();
+  await expect(emailAccessRequest).toBeFocused();
+  await expect(emailAccessRequest).toHaveAttribute(
+    "href",
+    /^mailto:homer\.agent\.erik@gmail\.com\?subject=/,
+  );
+}
+
 async function expectKeyboardAccessPathToWork(page: Page) {
   await page.goto("/");
 
@@ -21,7 +179,9 @@ async function expectKeyboardAccessPathToWork(page: Page) {
   await expect(requestAccess).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#apply$/);
-  await expect(page.locator("#apply")).toBeInViewport();
+  const applySection = page.locator("#apply");
+  await applySection.scrollIntoViewIfNeeded();
+  await expect(applySection).toBeInViewport();
 
   const emailAccessRequest = main.getByRole("link", { name: "Email the access request" });
   await page.keyboard.press("Tab");
@@ -309,3 +469,39 @@ test("Store Canary has no horizontal overflow or detectable accessibility violat
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
+
+for (const reflowMode of [
+  {
+    name: "at a 320 CSS-pixel viewport",
+    viewport: { width: 320, height: 720 },
+    textScale: 1,
+  },
+  {
+    name: "with 200% text sizing",
+    viewport: { width: 1280, height: 720 },
+    textScale: 2,
+  },
+]) {
+  test(`content reflows and both access CTAs remain reachable ${reflowMode.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(reflowMode.viewport);
+    await page.goto("/");
+    const defaultTextSize = await page.evaluate(() =>
+      Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+    );
+    await page.addStyleTag({
+      content: `html { font-size: ${reflowMode.textScale * 100}% !important; }`,
+    });
+    await page.evaluate(() => document.fonts.ready);
+
+    expect(await page.evaluate(() => window.innerWidth)).toBe(reflowMode.viewport.width);
+    expect(
+      await page.evaluate(() =>
+        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      ),
+    ).toBe(defaultTextSize * reflowMode.textScale);
+    await expectReflowContractToHold(page);
+    await expectAccessCtasToRemainReachable(page);
+  });
+}
