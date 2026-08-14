@@ -473,10 +473,25 @@ a:focus-visible {
 }
 .application-card p {
   color: var(--muted);
+  margin-bottom: 0;
+}
+.request-detail-list {
+  margin: -4px 0 2px;
+  padding-left: 22px;
+  color: var(--ink);
+}
+.request-detail-list li {
+  margin: 8px 0;
+  line-height: 1.4;
 }
 .application-card small {
   color: var(--muted);
   line-height: 1.5;
+}
+.contact-address {
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  overflow-wrap: anywhere;
 }
 .site-footer {
   padding: 55px 4vw;

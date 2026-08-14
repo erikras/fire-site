@@ -26,7 +26,11 @@ describe("Store Canary landing page", () => {
       "href",
       expect.stringMatching(/^mailto:homer\.agent\.erik@gmail\.com\?subject=/),
     );
+    expect(screen.getByText("Store URL")).toBeInTheDocument();
+    expect(screen.getByText("Your role")).toBeInTheDocument();
+    expect(screen.getByText(/WooCommerce version, if known/i)).toBeInTheDocument();
+    expect(screen.getByText("homer.agent.erik@gmail.com")).toBeInTheDocument();
     expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/asynchronous support|sales calls/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/asynchronous support|sales calls?/i)).not.toBeInTheDocument();
   });
 });

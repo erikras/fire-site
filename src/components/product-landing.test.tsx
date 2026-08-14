@@ -12,10 +12,23 @@ describe("ProductLanding", () => {
     expect(screen.getAllByText(/guided staging-site installation/i).length).toBeGreaterThan(0);
 
     const apply = screen.getByRole("link", { name: /email the access request/i });
-    expect(apply).toHaveAttribute(
-      "href",
-      expect.stringMatching(/^mailto:homer\.agent\.erik@gmail\.com\?subject=/),
+    const requestUrl = new URL(apply.getAttribute("href")!);
+    expect(`${requestUrl.protocol}${requestUrl.pathname}`).toBe(
+      "mailto:homer.agent.erik@gmail.com",
     );
+    expect(requestUrl.searchParams.get("subject")).toBe("Daily Ops access request");
+    expect(requestUrl.searchParams.get("body")).toBe(
+      "Hi Store Canary team,\n\nI’m interested in WooCommerce Daily Ops.\n\nStore URL:\nYour role:\nThe operational problem you want Daily Ops to solve:\nWooCommerce version, if known:\n\nThanks,",
+    );
+
+    expect(screen.getByText("Store URL")).toBeInTheDocument();
+    expect(screen.getByText("Your role")).toBeInTheDocument();
+    expect(
+      screen.getByText("The operational problem you want Daily Ops to solve"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("WooCommerce version, if known")).toBeInTheDocument();
+    expect(screen.getByText("homer.agent.erik@gmail.com")).toBeInTheDocument();
     expect(screen.queryByText(/beta|early access|waitlist/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sales calls?/i)).not.toBeInTheDocument();
   });
 });

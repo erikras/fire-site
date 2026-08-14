@@ -2,12 +2,21 @@ import type { Product } from "@/lib/products";
 import { ProductPreview } from "./product-preview";
 import { SiteFooter, SiteHeader } from "./site-shell";
 
+const accessEmail = "homer.agent.erik@gmail.com";
+const requestDetails = [
+  "Store URL",
+  "Your role",
+  "The operational problem you want Daily Ops to solve",
+  "WooCommerce version, if known",
+];
+
 function contactHref(product: Product) {
   const subject = encodeURIComponent(`${product.shortName} access request`);
+  const fields = requestDetails.map((detail) => `${detail}:`).join("\n");
   const body = encodeURIComponent(
-    `Hi Store Canary team,\n\nI’m interested in ${product.name}.\n\nStore URL:\nMy role:\nWhat I want this product to solve:\nWooCommerce version (if known):\n\nThanks,`,
+    `Hi Store Canary team,\n\nI’m interested in ${product.name}.\n\n${fields}\n\nThanks,`,
   );
-  return `mailto:homer.agent.erik@gmail.com?subject=${subject}&body=${body}`;
+  return `mailto:${accessEmail}?subject=${subject}&body=${body}`;
 }
 
 export function ProductLanding({ product }: { product: Product }) {
@@ -64,14 +73,19 @@ export function ProductLanding({ product }: { product: Product }) {
             <div className="application-card">
               <span className="stage-badge">{product.stage}</span>
               <strong>Guided staging-site installation</strong>
-              <p>
-                Send your store, role, and the operational problem you want fixed. We’ll reply with
-                the right installation path.
-              </p>
+              <p>Include these details so we can confirm compatibility:</p>
+              <ul className="request-detail-list">
+                {requestDetails.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
               <a className="button button-primary" href={contactHref(product)}>
                 Email the access request
               </a>
-              <small>Email opens in your default mail app. No sales call required.</small>
+              <small>
+                Email opens in your default mail app. If it does not, send the details above to{" "}
+                <span className="contact-address">{accessEmail}</span>.
+              </small>
             </div>
           </div>
         </section>
