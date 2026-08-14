@@ -35,6 +35,6 @@ yarn audit --level high
 
 ## Product claims
 
-Copy must remain consistent with `../fire-daily-ops/PRODUCT_SPEC.md` and `../fire-daily-ops/PROJECT_STATUS.md`. Do not claim public availability, pricing, customers, compliance, or production evidence that the product repository does not support.
+[`docs/MARKETING.md`](docs/MARKETING.md) is the source of truth for public marketing claims. Keep it aligned with `PROJECT_STATUS.md`, `ARCHITECTURE.md`, and supported product evidence. Do not claim public availability, pricing, customers, compliance, or production evidence that the product repository does not support.
 
 The access request opens a structured email to Fire's asynchronous operator inbox. The site itself collects no form data.
