@@ -2,9 +2,10 @@
 
 ## Unblocked
 
-1. Add Playwright reflow coverage at a 320 CSS-pixel viewport and with 200% text sizing, checking that content does not overlap or clip and both access CTAs remain reachable.
-2. Apply the WCAG text-spacing overrides in Playwright and verify that headings, preview rows, request details, and CTAs remain readable without truncation.
-3. Add a JavaScript-disabled Playwright check that the static landing page retains its approved copy, skip link, in-page request path, and structured email CTA.
+1. Apply the WCAG text-spacing overrides in Playwright and verify that headings, preview rows, request details, and CTAs remain readable without truncation.
+2. Add a JavaScript-disabled Playwright check that the static landing page retains its approved copy, skip link, in-page request path, and structured email CTA.
+3. Add Playwright target-size checks for both access CTAs at desktop and narrow reflow widths.
+4. Add a semantic outline contract for landmark uniqueness, heading order, and descriptive link names.
 
 ## Waits on Erik
 
