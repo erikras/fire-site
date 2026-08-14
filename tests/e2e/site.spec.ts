@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { prohibitedMarketingClaims, supportedDailyOpsExceptions } from "../marketing-copy-contract";
 
 test("Store Canary presents Daily Ops as an established product", async ({ page }) => {
   await page.goto("/");
@@ -19,8 +20,23 @@ test("Store Canary presents Daily Ops as an established product", async ({ page 
   await expect(page.getByText("Your role")).toBeVisible();
   await expect(page.getByText(/WooCommerce version, if known/i)).toBeVisible();
   await expect(page.getByText("homer.agent.erik@gmail.com")).toBeVisible();
-  await expect(page.getByText(/beta|early access|waitlist/i)).toHaveCount(0);
   await expect(page.getByText(/sales calls?/i)).toHaveCount(0);
+
+  const metadataCopy = await page
+    .locator('meta[name="description"], meta[property^="og:"]')
+    .evaluateAll((elements) => elements.map((element) => element.getAttribute("content") ?? ""));
+  const publicCopy = [
+    await page.title(),
+    await page.locator("body").innerText(),
+    ...metadataCopy,
+  ].join(" ");
+
+  for (const exception of supportedDailyOpsExceptions) {
+    expect(publicCopy.toLowerCase()).toContain(exception);
+  }
+  for (const { category, pattern } of prohibitedMarketingClaims) {
+    expect(publicCopy, category).not.toMatch(pattern);
+  }
 });
 
 test("keyboard users can skip the navigation and reach the main content", async ({ page }) => {
