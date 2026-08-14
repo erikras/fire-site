@@ -2,7 +2,7 @@
 
 Public marketing site for **WooCommerce Daily Ops**, deployed at [storecanary.app](https://storecanary.app).
 
-Store Canary catches stuck paid orders, failed payments, new stockouts, and broken scheduled actions, then turns them into one concise daily digest. The site recruits qualified operators for the owner-approved private beta without claiming public availability.
+Store Canary catches stuck paid orders, failed payments, new stockouts, and broken scheduled actions, then turns them into one concise daily digest. The site presents an established product that is available by request without claiming public availability.
 
 ## Development
 
@@ -37,4 +37,4 @@ yarn audit --level high
 
 Copy must remain consistent with `../fire-daily-ops/PRODUCT_SPEC.md` and `../fire-daily-ops/PROJECT_STATUS.md`. Do not claim public availability, pricing, customers, compliance, or production evidence that the product repository does not support.
 
-The private-beta application opens a structured email to Fire's asynchronous operator inbox. The site itself collects no form data.
+The access request opens a structured email to Fire's asynchronous operator inbox. The site itself collects no form data.
