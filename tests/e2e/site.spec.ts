@@ -600,7 +600,12 @@ test("keyboard focus follows document order without trapping users", async ({ pa
   }
 
   await page.keyboard.press("Tab");
+  await expect(page.locator("body")).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.locator("body")).toBeFocused();
 
   for (const control of [...focusOrder].reverse()) {
     await page.keyboard.press("Shift+Tab");
