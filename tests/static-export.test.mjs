@@ -54,14 +54,22 @@ test("the public export surface contains only approved files", async () => {
   const publicFiles = files.filter((file) => !file.startsWith("_next/"));
   const generatedFiles = files.filter((file) => file.startsWith("_next/"));
   const generatedMedia = generatedFiles.filter((file) => file.startsWith("_next/static/media/"));
+  const generatedFonts = generatedMedia.filter((file) => file.endsWith(".woff2"));
+  const generatedIcons = generatedMedia.filter((file) => file.endsWith(".svg"));
 
   assert.deepEqual(publicFiles, expectedPublicFiles);
   assert.ok(
-    generatedFiles.every((file) => /^_next\/static\/.+\.(?:css|js|svg)$/.test(file)),
+    generatedFiles.every((file) => /^_next\/static\/.+\.(?:css|js|svg|woff2)$/.test(file)),
     "Next.js generated an unexpected public asset type",
   );
-  assert.equal(generatedMedia.length, 1);
-  assert.match(generatedMedia[0], /^_next\/static\/media\/icon\.[a-z0-9_-]+\.svg$/);
+  assert.equal(generatedMedia.length, 17);
+  assert.equal(generatedFonts.length, 16);
+  assert.ok(
+    generatedFonts.every((file) => /^_next\/static\/media\/[a-z0-9._-]+\.woff2$/.test(file)),
+    "Next.js generated an unexpected font asset",
+  );
+  assert.equal(generatedIcons.length, 1);
+  assert.match(generatedIcons[0], /^_next\/static\/media\/icon\.[a-z0-9_-]+\.svg$/);
   assert.equal(
     files.some((file) => file.toLowerCase().endsWith(".zip")),
     false,
