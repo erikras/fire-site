@@ -634,7 +634,9 @@ test("the site does not expose unrelated Fire product pages", async ({ page }) =
   }
 });
 
-test("the landing page keeps its semantic structure and descriptive link names", async ({ page }) => {
+test("the landing page keeps its semantic structure and descriptive link names", async ({
+  page,
+}) => {
   await page.goto("/");
 
   await expect(page.getByRole("main")).toHaveCount(1);
@@ -663,9 +665,9 @@ test("the landing page keeps its semantic structure and descriptive link names",
   }
 
   for (const genericName of ["click here", "learn more"]) {
-    await expect(
-      page.getByRole("link", { name: new RegExp(`^${genericName}$`, "i") }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: new RegExp(`^${genericName}$`, "i") })).toHaveCount(
+      0,
+    );
   }
 
   const main = page.getByRole("main");
