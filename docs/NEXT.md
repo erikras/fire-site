@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Remove obsolete multi-product landing-page styles that are no longer used by the single-product site.
-2. Add contract tests for canonical metadata, `robots.txt`, and `sitemap.xml` so public-discovery details cannot drift unnoticed.
+1. Add contract tests for canonical metadata, `robots.txt`, and `sitemap.xml` so public-discovery details cannot drift unnoticed.
 
 ## Waits on Erik
 
