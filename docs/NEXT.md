@@ -2,9 +2,8 @@
 
 ## Unblocked
 
-1. Add an export integrity check that resolves every local `href`, `src`, and preload target in generated HTML against `out/`.
-2. Add explicit per-file and aggregate size budgets for the production HTML, CSS, JavaScript, and font export.
-3. Add Playwright checks for the landing page's focus states and CTA usability under reduced-motion and forced-colors preferences.
+1. Add explicit per-file and aggregate size budgets for the production HTML, CSS, JavaScript, and font export.
+2. Add Playwright checks for the landing page's focus states and CTA usability under reduced-motion and forced-colors preferences.
 
 ## Waits on Erik
 
