@@ -29,9 +29,15 @@ yarn typecheck
 yarn test
 yarn test:e2e
 yarn build
+yarn test:export
+yarn test:wrangler
 yarn format:check
 yarn audit --level high
 ```
+
+`test:wrangler` starts local HTTP and HTTPS `wrangler dev --local` servers against the
+built `out/` directory. It disables Wrangler telemetry and needs neither Cloudflare
+credentials nor a deployment.
 
 ## Product claims
 
