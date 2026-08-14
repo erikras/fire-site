@@ -10,25 +10,25 @@ describe("Store Canary edge handler", () => {
 
   it("redirects HTTP requests to HTTPS", async () => {
     const response = await worker.fetch(
-      new Request("http://storecanary.app/private-beta?source=nav"),
+      new Request("http://storecanary.app/example-path?source=redirect-test"),
       { ASSETS: assets },
     );
 
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe(
-      "https://storecanary.app/private-beta?source=nav",
+      "https://storecanary.app/example-path?source=redirect-test",
     );
   });
 
   it("redirects www to the canonical apex and preserves path and query", async () => {
     const response = await worker.fetch(
-      new Request("https://www.storecanary.app/private-beta?source=nav"),
+      new Request("https://www.storecanary.app/example-path?source=redirect-test"),
       { ASSETS: assets },
     );
 
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe(
-      "https://storecanary.app/private-beta?source=nav",
+      "https://storecanary.app/example-path?source=redirect-test",
     );
     expect(assets.fetch).not.toHaveBeenCalled();
   });
