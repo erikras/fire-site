@@ -2,7 +2,9 @@
 
 ## Unblocked
 
-1. Define and test baseline security headers at the Worker asset boundary without deploying them.
+1. Define and test a Worker method boundary that serves `GET`/`HEAD` and rejects mutating methods with a deterministic `405`.
+2. Define cache-policy contracts for immutable `_next/static` assets versus HTML and metadata responses.
+3. Add a local Wrangler integration check against `out/` for Static Assets routing, canonical redirects, and the Worker response wrapper without deploying.
 
 ## Waits on Erik
 
