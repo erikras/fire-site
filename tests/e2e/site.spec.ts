@@ -577,6 +577,44 @@ test("keyboard users can skip the navigation and reach the main content", async 
   ).toBeVisible();
 });
 
+test("keyboard focus follows document order without trapping users", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+  const main = page.getByRole("main");
+  const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  const focusOrder = [
+    skipLink,
+    page.getByRole("link", { name: "Store Canary home" }),
+    navigation.getByRole("link", { name: "How it works", exact: true }),
+    navigation.getByRole("link", { name: "Request access", exact: true }),
+    main.getByRole("link", { name: "Request access", exact: true }),
+    main.getByRole("link", { name: "Email the access request", exact: true }),
+  ];
+
+  for (const control of focusOrder) {
+    await expect(control).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(control).toBeFocused();
+  }
+
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+
+  for (const control of [...focusOrder].reverse()) {
+    await page.keyboard.press("Shift+Tab");
+    await expect(control).toBeFocused();
+  }
+
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main$/);
+  await expect(main).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  await expect(main.getByRole("link", { name: "Request access", exact: true })).toBeFocused();
+});
+
 test("reduced motion keeps the keyboard access path static and usable", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expectKeyboardAccessPathToWork(page);
