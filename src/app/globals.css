@@ -115,6 +115,7 @@ p {
   line-height: 0.91;
   letter-spacing: -0.07em;
   font-weight: 700;
+  overflow-wrap: anywhere;
   text-wrap: balance;
 }
 .lede {
