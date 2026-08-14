@@ -2,8 +2,9 @@
 
 ## Unblocked
 
-1. Add a semantic structure contract for landmark uniqueness, heading order, and descriptive link names.
-2. Add a Playwright focus-obscuration contract for the skip link, navigation, and both access CTAs at desktop and narrow reflow widths.
+1. Add a Playwright focus-obscuration contract for the skip link, navigation, and both access CTAs at desktop and narrow reflow widths.
+2. Add a complete keyboard focus-order and no-trap contract covering the brand, primary navigation, and both access CTAs.
+3. Add a default-color focus-indicator contrast contract for the skip link, primary navigation, and both access CTAs.
 
 ## Waits on Erik
 

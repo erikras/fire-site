@@ -634,6 +634,47 @@ test("the site does not expose unrelated Fire product pages", async ({ page }) =
   }
 });
 
+test("the landing page keeps its semantic structure and descriptive link names", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("main")).toHaveCount(1);
+
+  const semanticResults = await new AxeBuilder({ page })
+    .withRules([
+      "heading-order",
+      "landmark-no-duplicate-main",
+      "landmark-one-main",
+      "landmark-unique",
+      "link-name",
+      "page-has-heading-one",
+    ])
+    .analyze();
+  expect(semanticResults.violations).toEqual([]);
+
+  const headingLevels = await page
+    .getByRole("heading")
+    .evaluateAll((headings) => headings.map((heading) => Number(heading.tagName.slice(1))));
+  expect(headingLevels[0], "the heading outline should start with an h1").toBe(1);
+  for (let index = 1; index < headingLevels.length; index += 1) {
+    expect(
+      headingLevels[index],
+      `heading ${index + 1} should not skip a level after h${headingLevels[index - 1]}`,
+    ).toBeLessThanOrEqual(headingLevels[index - 1] + 1);
+  }
+
+  for (const genericName of ["click here", "learn more"]) {
+    await expect(
+      page.getByRole("link", { name: new RegExp(`^${genericName}$`, "i") }),
+    ).toHaveCount(0);
+  }
+
+  const main = page.getByRole("main");
+  await expect(main.getByRole("link", { name: "Request access", exact: true })).toHaveCount(1);
+  await expect(
+    main.getByRole("link", { name: "Email the access request", exact: true }),
+  ).toHaveCount(1);
+});
+
 test("Store Canary has no horizontal overflow or detectable accessibility violations", async ({
   page,
 }) => {
