@@ -23,6 +23,45 @@ test("Store Canary presents Daily Ops as an established product", async ({ page 
   await expect(page.getByText(/sales calls?/i)).toHaveCount(0);
 });
 
+test("the landing page emits canonical Store Canary metadata", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page).toHaveTitle("Store Canary · WooCommerce Daily Ops");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "https://storecanary.app",
+  );
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content",
+    "Catch stuck paid orders, failed payments, new stockouts, and broken scheduled actions in one concise WooCommerce daily digest.",
+  );
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+    "content",
+    "https://storecanary.app",
+  );
+});
+
+test("robots.txt allows all crawlers and names the canonical sitemap", async ({ request }) => {
+  const response = await request.get("/robots.txt");
+  const body = await response.text();
+
+  expect(response.ok()).toBe(true);
+  expect(body).toMatch(/^User-Agent: \*$/m);
+  expect(body).toMatch(/^Allow: \/$/m);
+  expect(body).not.toMatch(/^Disallow:/m);
+  expect(body).toMatch(/^Sitemap: https:\/\/storecanary\.app\/sitemap\.xml$/m);
+});
+
+test("sitemap.xml lists only the canonical landing page", async ({ request }) => {
+  const response = await request.get("/sitemap.xml");
+  const body = await response.text();
+
+  expect(response.ok()).toBe(true);
+  expect(body.match(/<url>/g) ?? []).toHaveLength(1);
+  expect(body.match(/<loc>/g) ?? []).toHaveLength(1);
+  expect(body).toContain("<loc>https://storecanary.app</loc>");
+});
+
 test("the site does not expose unrelated Fire product pages", async ({ page }) => {
   for (const slug of [
     "margin-monitor",
