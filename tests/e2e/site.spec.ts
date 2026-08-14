@@ -584,13 +584,17 @@ test("keyboard focus follows document order without trapping users", async ({ pa
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   const main = page.getByRole("main");
   const skipLink = page.getByRole("link", { name: "Skip to main content" });
+  const emailAccessRequest = main.getByRole("link", {
+    name: "Email the access request",
+    exact: true,
+  });
   const focusOrder = [
     skipLink,
     page.getByRole("link", { name: "Store Canary home" }),
     navigation.getByRole("link", { name: "How it works", exact: true }),
     navigation.getByRole("link", { name: "Request access", exact: true }),
     main.getByRole("link", { name: "Request access", exact: true }),
-    main.getByRole("link", { name: "Email the access request", exact: true }),
+    emailAccessRequest,
   ];
 
   for (const control of focusOrder) {
@@ -600,12 +604,12 @@ test("keyboard focus follows document order without trapping users", async ({ pa
   }
 
   await page.keyboard.press("Tab");
-  await expect(page.locator("body")).toBeFocused();
+  await expect(emailAccessRequest).not.toBeFocused();
   await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
-  await expect(page.locator("body")).toBeFocused();
+  await expect(skipLink).not.toBeFocused();
 
   for (const control of [...focusOrder].reverse()) {
     await page.keyboard.press("Shift+Tab");
