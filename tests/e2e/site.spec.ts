@@ -41,6 +41,109 @@ test("keyboard users can skip the navigation and reach the main content", async 
   ).toBeVisible();
 });
 
+test("the browser privacy boundary permits only the email CTA", async ({
+  baseURL,
+  context,
+  page,
+}) => {
+  expect(baseURL).toBeTruthy();
+  const firstPartyOrigin = new URL(baseURL!).origin;
+  const thirdPartyRequests: string[] = [];
+  const cookieResponses: string[] = [];
+  const responseHeaderChecks: Promise<void>[] = [];
+
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      url.origin !== firstPartyOrigin
+    ) {
+      thirdPartyRequests.push(request.url());
+    }
+  });
+  page.on("response", (response) => {
+    responseHeaderChecks.push(
+      response.allHeaders().then((headers) => {
+        if (headers["set-cookie"]) {
+          cookieResponses.push(response.url());
+        }
+      }),
+    );
+  });
+
+  await page.addInitScript(() => {
+    const browserDataWrites: string[] = [];
+    Object.defineProperty(window, "__storeCanaryBrowserDataWrites", {
+      value: browserDataWrites,
+    });
+
+    const cookie = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+    if (cookie?.get && cookie.set) {
+      Object.defineProperty(Document.prototype, "cookie", {
+        ...cookie,
+        set(this: Document, value: string) {
+          browserDataWrites.push("document.cookie");
+          cookie.set!.call(this, value);
+        },
+      });
+    }
+
+    const wrap = (target: object, method: string, label: string) => {
+      const original = Reflect.get(target, method) as (...args: unknown[]) => unknown;
+      Reflect.set(target, method, function (this: unknown, ...args: unknown[]) {
+        browserDataWrites.push(label);
+        return Reflect.apply(original, this, args);
+      });
+    };
+
+    wrap(Storage.prototype, "setItem", "Storage.setItem");
+    wrap(Storage.prototype, "removeItem", "Storage.removeItem");
+    wrap(Storage.prototype, "clear", "Storage.clear");
+    wrap(indexedDB, "open", "indexedDB.open");
+    wrap(indexedDB, "deleteDatabase", "indexedDB.deleteDatabase");
+  });
+
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await Promise.all(responseHeaderChecks);
+
+  const scriptSources = await page
+    .locator("script[src]")
+    .evaluateAll((scripts) => scripts.map((script) => (script as HTMLScriptElement).src));
+  const thirdPartyScripts = scriptSources.filter((source) => {
+    const url = new URL(source);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") && url.origin !== firstPartyOrigin
+    );
+  });
+  const browserData = await page.evaluate(async () => ({
+    indexedDB: (await indexedDB.databases()).map(({ name }) => name),
+    localStorage: Array.from({ length: localStorage.length }, (_, index) =>
+      localStorage.key(index),
+    ),
+    sessionStorage: Array.from({ length: sessionStorage.length }, (_, index) =>
+      sessionStorage.key(index),
+    ),
+    writes: Reflect.get(window, "__storeCanaryBrowserDataWrites") as string[],
+  }));
+
+  expect(await page.locator("form").count()).toBe(0);
+  await expect(page.getByRole("link", { name: /email the access request/i })).toHaveAttribute(
+    "href",
+    /^mailto:/,
+  );
+  expect(thirdPartyScripts).toEqual([]);
+  expect(thirdPartyRequests).toEqual([]);
+  expect(cookieResponses).toEqual([]);
+  expect(await context.cookies()).toEqual([]);
+  expect(browserData).toEqual({
+    indexedDB: [],
+    localStorage: [],
+    sessionStorage: [],
+    writes: [],
+  });
+});
+
 test("the landing page emits canonical Store Canary metadata", async ({ page }) => {
   await page.goto("/");
 
