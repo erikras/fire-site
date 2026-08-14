@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Define cache-policy contracts for immutable `_next/static` assets versus HTML and metadata responses.
-2. Add a local Wrangler integration check against `out/` for Static Assets routing, canonical redirects, and the Worker response wrapper without deploying.
+1. Add a local Wrangler integration check against `out/` for Static Assets routing, canonical redirects, and the Worker response wrapper without deploying.
 
 ## Waits on Erik
 

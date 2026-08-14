@@ -27,13 +27,43 @@ const securityHeaders = {
   "X-Frame-Options": "DENY",
 } as const;
 
+const cacheControl = {
+  immutable: "public, max-age=31536000, immutable",
+  noStore: "no-store",
+} as const;
+
+const metadataPaths = new Set(["/robots.txt", "/sitemap.xml"]);
 const allowedMethods = new Set(["GET", "HEAD"]);
 
-function withSecurityHeaders(response: Response): Response {
+function cachePolicy(url: URL, response: Response): string | undefined {
+  if (
+    url.pathname.startsWith("/_next/static/") &&
+    response.status >= 200 &&
+    response.status < 400
+  ) {
+    return cacheControl.immutable;
+  }
+
+  const contentType = response.headers.get("content-type")?.toLowerCase();
+
+  if (
+    metadataPaths.has(url.pathname) ||
+    contentType?.startsWith("text/html") ||
+    response.status >= 400
+  ) {
+    return cacheControl.noStore;
+  }
+}
+
+function withResponseHeaders(response: Response, cacheControlValue?: string): Response {
   const headers = new Headers(response.headers);
 
   for (const [name, value] of Object.entries(securityHeaders)) {
     headers.set(name, value);
+  }
+
+  if (cacheControlValue) {
+    headers.set("Cache-Control", cacheControlValue);
   }
 
   return new Response(response.body, {
@@ -46,7 +76,7 @@ function withSecurityHeaders(response: Response): Response {
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (!allowedMethods.has(request.method)) {
-      return withSecurityHeaders(
+      return withResponseHeaders(
         new Response(null, {
           headers: { Allow: "GET, HEAD" },
           status: 405,
@@ -60,10 +90,11 @@ const worker = {
     if (mustRedirect) {
       url.protocol = "https:";
       url.hostname = "storecanary.app";
-      return withSecurityHeaders(Response.redirect(url.toString(), 308));
+      return withResponseHeaders(Response.redirect(url.toString(), 308));
     }
 
-    return withSecurityHeaders(await env.ASSETS.fetch(request));
+    const response = await env.ASSETS.fetch(request);
+    return withResponseHeaders(response, cachePolicy(url, response));
   },
 };
 

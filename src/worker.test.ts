@@ -11,6 +11,8 @@ const expectedSecurityHeaders = {
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY",
 };
+const immutableCacheControl = "public, max-age=31536000, immutable";
+const noStoreCacheControl = "no-store";
 
 function expectSecurityHeaders(response: Response) {
   for (const [name, value] of Object.entries(expectedSecurityHeaders)) {
@@ -65,6 +67,84 @@ describe("Store Canary edge handler", () => {
     }
   });
 
+  it("caches successful _next/static assets as immutable for one year", async () => {
+    for (const path of [
+      "/_next/static/chunks/app.2f6c7a91.js",
+      "/_next/static/media/font.4e8b1c20.woff2",
+    ]) {
+      assets.fetch.mockResolvedValueOnce(
+        new Response("immutable asset", {
+          headers: { "cache-control": "public, max-age=60" },
+        }),
+      );
+
+      const response = await worker.fetch(new Request(`https://storecanary.app${path}`), {
+        ASSETS: assets,
+      });
+
+      expect(response.headers.get("cache-control")).toBe(immutableCacheControl);
+      expectSecurityHeaders(response);
+    }
+  });
+
+  it("prevents HTML responses from being stored", async () => {
+    assets.fetch.mockResolvedValueOnce(
+      new Response("<!doctype html><title>Store Canary</title>", {
+        headers: {
+          "cache-control": "public, max-age=3600",
+          "content-type": "text/html; charset=utf-8",
+        },
+      }),
+    );
+
+    const response = await worker.fetch(new Request("https://storecanary.app/"), {
+      ASSETS: assets,
+    });
+
+    expect(response.headers.get("cache-control")).toBe(noStoreCacheControl);
+  });
+
+  it("prevents robots and sitemap metadata from being stored", async () => {
+    for (const [path, contentType] of [
+      ["/robots.txt", "text/plain"],
+      ["/sitemap.xml", "application/xml"],
+    ]) {
+      assets.fetch.mockResolvedValueOnce(
+        new Response("metadata", {
+          headers: {
+            "cache-control": "public, max-age=86400",
+            "content-type": contentType,
+          },
+        }),
+      );
+
+      const response = await worker.fetch(new Request(`https://storecanary.app${path}`), {
+        ASSETS: assets,
+      });
+
+      expect(response.headers.get("cache-control")).toBe(noStoreCacheControl);
+    }
+  });
+
+  it("does not cache missing _next/static assets as immutable", async () => {
+    assets.fetch.mockResolvedValueOnce(
+      new Response("not found", {
+        status: 404,
+        headers: {
+          "cache-control": immutableCacheControl,
+          "content-type": "application/javascript",
+        },
+      }),
+    );
+
+    const response = await worker.fetch(
+      new Request("https://storecanary.app/_next/static/chunks/missing.js"),
+      { ASSETS: assets },
+    );
+
+    expect(response.headers.get("cache-control")).toBe(noStoreCacheControl);
+  });
+
   it("rejects methods outside GET and HEAD with a deterministic 405", async () => {
     for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
       const response = await worker.fetch(
@@ -82,7 +162,7 @@ describe("Store Canary edge handler", () => {
     expect(assets.fetch).not.toHaveBeenCalled();
   });
 
-  it("preserves the asset response while replacing its security policy", async () => {
+  it("preserves the asset response while replacing its response policies", async () => {
     assets.fetch.mockResolvedValueOnce(
       new Response("not found", {
         status: 404,
@@ -100,7 +180,7 @@ describe("Store Canary edge handler", () => {
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe("not found");
-    expect(response.headers.get("cache-control")).toBe("public, max-age=60");
+    expect(response.headers.get("cache-control")).toBe(noStoreCacheControl);
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expectSecurityHeaders(response);
   });
