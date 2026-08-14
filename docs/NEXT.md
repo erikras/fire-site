@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Add a complete keyboard focus-order and no-trap contract covering the brand, primary navigation, and both access CTAs.
-2. Add a default-color focus-indicator visibility contract, including the 3:1 adjacent-color ratio, for the skip link, primary navigation, and both access CTAs.
+1. Add a default-color focus-indicator visibility contract, including the 3:1 adjacent-color ratio, for the skip link, primary navigation, and both access CTAs.
 
 ## Waits on Erik
 
