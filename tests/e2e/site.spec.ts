@@ -287,8 +287,11 @@ async function expectFocusedControlNotToBeObscured(control: Locator, label: stri
     type Box = { bottom: number; left: number; right: number; top: number };
 
     const tolerance = 1;
+    // Tailwind scans test sources, so split layout keywords to avoid emitting test-only utilities.
     const clippedOverflow = ["cl", "ip"].join("");
     const concealedOverflow = ["hid", "den"].join("");
+    const fixedPosition = ["fix", "ed"].join("");
+    const stickyPosition = ["sti", "cky"].join("");
     const clippingValues = new Set([clippedOverflow, concealedOverflow, "auto", "scroll"]);
     const describe = (candidate: Element) => {
       const id = candidate.id ? `#${candidate.id}` : "";
@@ -388,7 +391,7 @@ async function expectFocusedControlNotToBeObscured(control: Locator, label: stri
       const candidateStyle = getComputedStyle(candidate);
       const candidateBounds = candidate.getBoundingClientRect();
       return (
-        (candidateStyle.position === "fixed" || candidateStyle.position === "sticky") &&
+        (candidateStyle.position === fixedPosition || candidateStyle.position === stickyPosition) &&
         candidateStyle.display !== "none" &&
         candidateStyle.visibility !== concealedOverflow &&
         Number.parseFloat(candidateStyle.opacity) !== 0 &&
