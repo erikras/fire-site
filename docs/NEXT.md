@@ -2,10 +2,10 @@
 
 ## Unblocked
 
-1. Add a JavaScript-disabled Playwright check that the static landing page retains its approved copy, skip link, in-page request path, and structured email CTA.
-2. Add Playwright target-size checks for both access CTAs at desktop and narrow reflow widths.
-3. Add a semantic structure contract for landmark uniqueness, heading order, and descriptive link names.
-4. Add a Playwright focus-obscuration contract for the skip link, navigation, and both access CTAs at desktop and narrow reflow widths.
+1. Add Playwright target-size checks for both access CTAs at desktop and narrow reflow widths.
+2. Add a semantic structure contract for landmark uniqueness, heading order, and descriptive link names.
+3. Add a Playwright focus-obscuration contract for the skip link, navigation, and both access CTAs at desktop and narrow reflow widths.
+4. Add a static-export link-integrity check that every in-page fragment and emitted first-party asset resolves locally.
 
 ## Waits on Erik
 

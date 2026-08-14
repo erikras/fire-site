@@ -289,6 +289,65 @@ async function expectKeyboardAccessPathToWork(page: Page) {
   );
 }
 
+test.describe("the static landing page without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("retains approved copy and the complete access-request path", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "The quiet morning check for a busy WooCommerce store.",
+      }),
+    ).toBeVisible();
+    await expect(page.locator(".stage-badge")).toHaveText([
+      "Available by request",
+      "Available by request",
+    ]);
+    await expect(page.getByText(/private beta/i)).toHaveCount(0);
+
+    const skipLink = page.locator('a.skip-link[href="#main"]');
+    await expect(skipLink).toHaveCount(1);
+    await expect(skipLink).toHaveText("Skip to main content");
+
+    const main = page.getByRole("main");
+    const requestAccess = main.getByRole("link", { name: "Request access", exact: true });
+    await expect(requestAccess).toHaveAttribute("href", "#apply");
+    await expect(page.locator("#apply")).toHaveCount(1);
+    await requestAccess.click();
+    await expect(page).toHaveURL(/#apply$/);
+
+    const emailAccessRequest = main.getByRole("link", {
+      name: "Email the access request",
+      exact: true,
+    });
+    await expect(emailAccessRequest).toBeVisible();
+    const emailHref = await emailAccessRequest.getAttribute("href");
+    expect(emailHref).not.toBeNull();
+
+    const emailUrl = new URL(emailHref!);
+    expect(emailUrl.protocol).toBe("mailto:");
+    expect(emailUrl.pathname).toBe("homer.agent.erik@gmail.com");
+    expect(Array.from(emailUrl.searchParams.keys())).toEqual(["subject", "body"]);
+    expect(emailUrl.searchParams.get("subject")).toBe("Daily Ops access request");
+    expect(emailUrl.searchParams.get("body")).toBe(
+      [
+        "Hi Store Canary team,",
+        "",
+        "I’m interested in WooCommerce Daily Ops.",
+        "",
+        "Store URL:",
+        "Your role:",
+        "The operational problem you want Daily Ops to solve:",
+        "WooCommerce version, if known:",
+        "",
+        "Thanks,",
+      ].join("\n"),
+    );
+  });
+});
+
 test("Store Canary presents Daily Ops as an established product", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Store Canary · WooCommerce Daily Ops/);
