@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:export": "node --test tests/static-export.test.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

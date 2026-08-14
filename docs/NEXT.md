@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Add a static-export inventory contract that catches unexpected public routes, ZIP files, or product-download links before they can enter the build artifact.
-2. Define and test baseline security headers at the Worker asset boundary without deploying them.
+1. Define and test baseline security headers at the Worker asset boundary without deploying them.
 
 ## Waits on Erik
 

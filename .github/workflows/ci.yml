@@ -25,4 +25,5 @@ jobs:
       - run: yarn test:e2e
       - run: yarn format:check
       - run: yarn build
+      - run: yarn test:export
       - run: yarn audit --level high
