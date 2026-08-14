@@ -29,6 +29,7 @@ const expectedSecurityHeaders = {
 const servers = [];
 let httpServer;
 let httpsServer;
+let wwwServer;
 
 function request(server, pathname, options = {}) {
   const transport = server.protocol === "https" ? https : http;
@@ -74,33 +75,34 @@ function availablePort() {
   });
 }
 
-async function startWrangler(protocol) {
+async function startWrangler(protocol, localUpstream) {
   const port = await availablePort();
-  const child = spawn(
-    wranglerPath,
-    [
-      "dev",
-      "--local",
-      "--ip",
-      "127.0.0.1",
-      "--port",
-      String(port),
-      "--local-protocol",
-      protocol,
-      "--log-level",
-      "error",
-      "--show-interactive-dev-session=false",
-    ],
-    {
-      cwd: projectDirectory,
-      env: {
-        ...process.env,
-        CI: "true",
-        WRANGLER_SEND_METRICS: "false",
-      },
-      stdio: ["ignore", "pipe", "pipe"],
+  const arguments_ = [
+    "dev",
+    "--local",
+    "--ip",
+    "127.0.0.1",
+    "--port",
+    String(port),
+    "--local-protocol",
+    protocol,
+    "--log-level",
+    "error",
+    "--show-interactive-dev-session=false",
+  ];
+  if (localUpstream) {
+    arguments_.push("--local-upstream", localUpstream);
+  }
+
+  const child = spawn(wranglerPath, arguments_, {
+    cwd: projectDirectory,
+    env: {
+      ...process.env,
+      CI: "true",
+      WRANGLER_SEND_METRICS: "false",
     },
-  );
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   const server = { child, output: "", port, protocol };
   servers.push(server);
   child.stdout.on("data", (chunk) => {
@@ -164,6 +166,7 @@ async function findStaticAsset(directory, relativeDirectory = "") {
 before(async () => {
   httpServer = await startWrangler("http");
   httpsServer = await startWrangler("https");
+  wwwServer = await startWrangler("https", "www.storecanary.app");
 });
 
 after(async () => {
@@ -179,9 +182,7 @@ test("local Wrangler applies canonical redirects without contacting Cloudflare",
   assert.equal(httpRedirect.headers.location, "http://storecanary.app/daily?source=local-check");
   expectSecurityHeaders(httpRedirect);
 
-  const wwwRedirect = await request(httpsServer, "/daily?source=local-check", {
-    host: "www.storecanary.app",
-  });
+  const wwwRedirect = await request(wwwServer, "/daily?source=local-check");
   assert.equal(wwwRedirect.status, 308);
   assert.equal(wwwRedirect.headers.location, "https://storecanary.app/daily?source=local-check");
   expectSecurityHeaders(wwwRedirect);
