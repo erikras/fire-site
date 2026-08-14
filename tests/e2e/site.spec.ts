@@ -605,10 +605,7 @@ test("WCAG text spacing keeps key copy and both access CTAs readable", async ({ 
   await expect(previewRows).toHaveCount(3);
   await expect(accessCtas).toHaveCount(2);
   await expectTextToRemainReadable(main.getByRole("heading"), "headings");
-  await expectTextToRemainReadable(
-    previewRows.locator("span, strong"),
-    "Daily Ops preview rows",
-  );
+  await expectTextToRemainReadable(previewRows.locator("span, strong"), "Daily Ops preview rows");
   await expectTextToRemainReadable(
     page.locator("#apply p, #apply li, #apply small"),
     "request details",
