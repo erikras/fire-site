@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { prohibitedMarketingClaims, supportedDailyOpsExceptions } from "../marketing-copy-contract";
 
 async function expectReflowContractToHold(page: Page) {
@@ -131,6 +131,102 @@ async function expectReflowContractToHold(page: Page) {
   });
 
   expect(issues, "reflow contract violations").toEqual([]);
+}
+
+async function expectTextToRemainReadable(locator: Locator, label: string) {
+  await expect(locator, `${label} should be present`).not.toHaveCount(0);
+
+  const issues = await locator.evaluateAll((elements) => {
+    const tolerance = 1;
+    const findings: string[] = [];
+    // Tailwind scans test sources, so split layout keywords to avoid emitting test-only utilities.
+    const clippedOverflow = ["cl", "ip"].join("");
+    const concealedOverflow = ["hid", "den"].join("");
+    const clippedValues = new Set([clippedOverflow, concealedOverflow]);
+    const describe = (element: Element, index: number) => {
+      const id = element.id ? `#${element.id}` : "";
+      const classes = Array.from(element.classList)
+        .map((className) => `.${className}`)
+        .join("");
+      return `${element.tagName.toLowerCase()}${id}${classes}[${index}]`;
+    };
+
+    for (const [index, element] of elements.entries()) {
+      const name = describe(element, index);
+      const text = element.textContent?.trim() ?? "";
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+
+      if (!text) {
+        findings.push(`${name} has no readable text`);
+        continue;
+      }
+      if (
+        style.display === "none" ||
+        style.visibility === concealedOverflow ||
+        Number.parseFloat(style.opacity) === 0 ||
+        bounds.width <= 0 ||
+        bounds.height <= 0
+      ) {
+        findings.push(`${name} is not rendered`);
+        continue;
+      }
+      if (style.textOverflow === "ellipsis" || style.webkitLineClamp !== "none") {
+        findings.push(`${name} truncates text`);
+      }
+      if (
+        clippedValues.has(style.overflowX) &&
+        element.scrollWidth > element.clientWidth + tolerance
+      ) {
+        findings.push(`${name} clips text horizontally`);
+      }
+      if (
+        clippedValues.has(style.overflowY) &&
+        element.scrollHeight > element.clientHeight + tolerance
+      ) {
+        findings.push(`${name} clips text vertically`);
+      }
+
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const textRects = Array.from(range.getClientRects()).filter(
+        (rect) => rect.width > 0 && rect.height > 0,
+      );
+      if (textRects.length === 0) {
+        findings.push(`${name} has no rendered text bounds`);
+        continue;
+      }
+
+      for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
+        const ancestorStyle = getComputedStyle(ancestor);
+        const clipsX = clippedValues.has(ancestorStyle.overflowX);
+        const clipsY = clippedValues.has(ancestorStyle.overflowY);
+        if (!clipsX && !clipsY) {
+          continue;
+        }
+
+        const ancestorBounds = ancestor.getBoundingClientRect();
+        if (
+          textRects.some(
+            (rect) =>
+              (clipsX &&
+                (rect.left < ancestorBounds.left - tolerance ||
+                  rect.right > ancestorBounds.right + tolerance)) ||
+              (clipsY &&
+                (rect.top < ancestorBounds.top - tolerance ||
+                  rect.bottom > ancestorBounds.bottom + tolerance)),
+          )
+        ) {
+          findings.push(`${name} is clipped by an ancestor`);
+          break;
+        }
+      }
+    }
+
+    return [...new Set(findings)];
+  });
+
+  expect(issues, `${label} readability violations`).toEqual([]);
 }
 
 async function expectAccessCtasToRemainReachable(page: Page) {
@@ -468,6 +564,55 @@ test("Store Canary has no horizontal overflow or detectable accessibility violat
   expect(overflow).toBe(false);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+test("WCAG text spacing keeps key copy and both access CTAs readable", async ({ page }) => {
+  await page.goto("/");
+  await page.addStyleTag({
+    content: `
+      * {
+        line-height: 1.5 !important;
+        letter-spacing: 0.12em !important;
+        word-spacing: 0.16em !important;
+      }
+      p {
+        margin-bottom: 2em !important;
+      }
+    `,
+  });
+  await page.evaluate(() => document.fonts.ready);
+
+  const appliedSpacing = await page.locator("main h1").evaluate((heading) => {
+    const headingStyle = getComputedStyle(heading);
+    const paragraphStyle = getComputedStyle(document.querySelector("main p")!);
+    return {
+      letterSpacing: Number.parseFloat(headingStyle.letterSpacing),
+      lineHeight: Number.parseFloat(headingStyle.lineHeight),
+      paragraphSpacing: Number.parseFloat(paragraphStyle.marginBottom),
+      paragraphTextSize: Number.parseFloat(paragraphStyle.fontSize),
+      textSize: Number.parseFloat(headingStyle.fontSize),
+      wordSpacing: Number.parseFloat(headingStyle.wordSpacing),
+    };
+  });
+  expect(appliedSpacing.lineHeight / appliedSpacing.textSize).toBeCloseTo(1.5);
+  expect(appliedSpacing.paragraphSpacing / appliedSpacing.paragraphTextSize).toBeCloseTo(2);
+  expect(appliedSpacing.letterSpacing / appliedSpacing.textSize).toBeCloseTo(0.12);
+  expect(appliedSpacing.wordSpacing / appliedSpacing.textSize).toBeCloseTo(0.16);
+
+  const main = page.getByRole("main");
+  const previewRows = page.locator(".preview-row");
+  const accessCtas = main.locator("a.button");
+  await expect(previewRows).toHaveCount(3);
+  await expect(accessCtas).toHaveCount(2);
+  await expectTextToRemainReadable(main.getByRole("heading"), "headings");
+  await expectTextToRemainReadable(previewRows.locator("span, strong"), "Daily Ops preview rows");
+  await expectTextToRemainReadable(
+    page.locator("#apply p, #apply li, #apply small"),
+    "request details",
+  );
+  await expectTextToRemainReadable(accessCtas, "access CTAs");
+  await expectReflowContractToHold(page);
+  await expectAccessCtasToRemainReachable(page);
 });
 
 for (const reflowMode of [

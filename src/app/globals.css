@@ -19,7 +19,6 @@ html {
   scroll-behavior: smooth;
 }
 body {
-  margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans), sans-serif;
@@ -115,6 +114,7 @@ p {
   line-height: 0.91;
   letter-spacing: -0.07em;
   font-weight: 700;
+  overflow-wrap: anywhere;
   text-wrap: balance;
 }
 .lede {
@@ -245,8 +245,6 @@ a:focus-visible {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-.stage-badge {
   width: max-content;
   padding: 7px 9px;
   border: 1px solid var(--line);
