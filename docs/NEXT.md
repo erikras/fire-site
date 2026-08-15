@@ -2,11 +2,10 @@
 
 ## Unblocked
 
-1. Add a CI regression check that keeps workflow permissions read-only and prevents deploy commands from entering the quality job.
-2. Add a no-deploy secret-pattern scan for committed source and configuration.
-3. Add a deterministic production-dependency license inventory check.
-4. Add a no-deploy browser regression for keyboard-only request-access navigation.
-5. Add a deterministic check that the static export makes no unexpected third-party browser requests.
+1. Add a no-deploy secret-pattern scan for committed source and configuration.
+2. Add a deterministic production-dependency license inventory check.
+3. Add a no-deploy browser regression for keyboard-only request-access navigation.
+4. Add a deterministic check that the static export makes no unexpected third-party browser requests.
 
 ## Waits on Erik
 
