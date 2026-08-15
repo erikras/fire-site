@@ -32,6 +32,13 @@ yarn quality
 
 Playwright browsers are a local prerequisite (`yarn playwright install chromium`); `yarn quality` includes `test:asset-size`.
 
+`yarn test:secrets` scans every tracked, non-binary file reported by
+`git ls-files`. Its documented allowlist excludes generated, dependency, and
+test-report directories (`node_modules`, `.next`, `out`, `build`, `coverage`,
+`playwright-report`, and `test-results`), package-manager lockfiles, license
+texts, and the intentionally invalid negative fixtures isolated under
+`tests/fixtures/secret-patterns/`.
+
 Lint GitHub Actions workflow YAML, expressions, and embedded shell with the same
 command CI uses:
 
