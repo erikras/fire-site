@@ -515,6 +515,27 @@ function assertNoInlineEventHandlers(html, sourceFile) {
   }
 }
 
+function assertNoAutofocusAttributes(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const autofocusAttributes = [...dom.window.document.querySelectorAll("[autofocus]")].map(
+      (element) =>
+        `"autofocus" on <${element.localName}>: ${JSON.stringify(
+          element.getAttribute("autofocus"),
+        )}`,
+    );
+
+    assert.deepEqual(
+      autofocusAttributes,
+      [],
+      `${sourceFile} contains autofocus attributes: ${autofocusAttributes.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoJavascriptUrls(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1241,6 +1262,32 @@ test("the inline event-handler scanner rejects handler attributes", async () => 
   assert.doesNotThrow(() =>
     assertNoInlineEventHandlers(noInlineHandlers, "no-inline-event-handlers.html"),
   );
+});
+
+test("every exported HTML document contains no autofocus attributes", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoAutofocusAttributes(html, htmlFile);
+  }
+});
+
+test("the autofocus scanner rejects boolean and valued attributes", async () => {
+  for (const [fixture, expectedError] of [
+    ["autofocus-boolean.html", /"autofocus" on <input>: ""/],
+    ["autofocus-empty.html", /"autofocus" on <textarea>: ""/],
+    ["autofocus-valued.html", /"autofocus" on <select>: "autofocus"/],
+    ["autofocus-other-value.html", /"autofocus" on <button>: "unexpected"/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoAutofocusAttributes(html, fixture), expectedError);
+  }
+
+  for (const fixture of ["no-autofocus.html", "autofocus-lookalikes.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoAutofocusAttributes(html, fixture));
+  }
 });
 
 test("every exported HTML document contains no javascript: URLs", async () => {
