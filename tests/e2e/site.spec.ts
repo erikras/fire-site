@@ -277,6 +277,95 @@ async function expectAccessCtasToMeetTargetSize(page: Page) {
   }
 }
 
+async function expectDefaultColorFocusIndicator(control: Locator, label: string) {
+  const minimumContrastRatio = 3;
+  const minimumIndicatorWidth = 2;
+
+  await expect(control, `${label} should receive keyboard focus`).toBeFocused();
+
+  const result = await control.evaluate((element) => {
+    type Rgba = [number, number, number, number];
+
+    const style = getComputedStyle(element);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    if (!context) {
+      throw new Error("A canvas context is required to resolve computed colors");
+    }
+
+    const parseColor = (color: string): Rgba => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+      return [red / 255, green / 255, blue / 255, alpha / 255];
+    };
+    const composite = (foreground: Rgba, background: Rgba): Rgba => {
+      const alpha = foreground[3] + background[3] * (1 - foreground[3]);
+      if (alpha === 0) {
+        return [0, 0, 0, 0];
+      }
+
+      return [
+        (foreground[0] * foreground[3] + background[0] * background[3] * (1 - foreground[3])) /
+          alpha,
+        (foreground[1] * foreground[3] + background[1] * background[3] * (1 - foreground[3])) /
+          alpha,
+        (foreground[2] * foreground[3] + background[2] * background[3] * (1 - foreground[3])) /
+          alpha,
+        alpha,
+      ];
+    };
+    const luminance = ([red, green, blue]: Rgba) => {
+      const linearize = (channel: number) =>
+        channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      return 0.2126 * linearize(red) + 0.7152 * linearize(green) + 0.0722 * linearize(blue);
+    };
+
+    const ancestors: Element[] = [];
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      ancestors.push(ancestor);
+    }
+
+    const adjacentBackground = ancestors.reverse().reduce<Rgba>(
+      (background, ancestor) => {
+        const ancestorStyle = getComputedStyle(ancestor);
+        return composite(parseColor(ancestorStyle.backgroundColor), background);
+      },
+      [1, 1, 1, 1],
+    );
+    const outlineColor = parseColor(style.outlineColor);
+    const lighter = Math.max(luminance(outlineColor), luminance(adjacentBackground));
+    const darker = Math.min(luminance(outlineColor), luminance(adjacentBackground));
+
+    return {
+      adjacentBackground: adjacentBackground.map((channel) => Number(channel.toFixed(4))),
+      contrastRatio: (lighter + 0.05) / (darker + 0.05),
+      forcedColorsActive: matchMedia("(forced-colors: active)").matches,
+      focusVisible: element.matches(":focus-visible"),
+      outlineColor: style.outlineColor,
+      outlineStyle: style.outlineStyle,
+      outlineWidth: Number.parseFloat(style.outlineWidth) || 0,
+    };
+  });
+
+  expect(result.forcedColorsActive, `${label} should be tested in default colors`).toBe(false);
+  expect(result.focusVisible, `${label} should match :focus-visible`).toBe(true);
+  expect(result.outlineStyle, `${label} should render an outline`).not.toBe("none");
+  expect(result.outlineWidth, `${label} focus-indicator width`).toBeGreaterThanOrEqual(
+    minimumIndicatorWidth,
+  );
+  expect(
+    result.contrastRatio,
+    `${label} ${result.outlineColor} focus indicator against adjacent ${result.adjacentBackground.join(
+      ", ",
+    )} background`,
+  ).toBeGreaterThanOrEqual(minimumContrastRatio);
+}
+
 async function expectFocusedControlNotToBeObscured(control: Locator, label: string) {
   await expect(control, `${label} should be rendered`).toBeVisible();
   await control.focus();
@@ -622,6 +711,50 @@ test("keyboard focus follows document order without trapping users", async ({ pa
 
   await page.keyboard.press("Tab");
   await expect(main.getByRole("link", { name: "Request access", exact: true })).toBeFocused();
+});
+
+test("default-color keyboard focus indicators remain visible at 3:1 against adjacent backgrounds", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+  const main = page.getByRole("main");
+  const howItWorks = navigation.getByRole("link", { name: "How it works", exact: true });
+  const keyboardFocusOrder: [string, Locator, boolean][] = [
+    ["skip link", page.getByRole("link", { name: "Skip to main content" }), true],
+    ["home link", page.getByRole("link", { name: "Store Canary home" }), false],
+    ...((await howItWorks.isVisible())
+      ? ([["primary navigation “How it works” link", howItWorks, true]] as [
+          string,
+          Locator,
+          boolean,
+        ][])
+      : []),
+    [
+      "primary navigation “Request access” link",
+      navigation.getByRole("link", { name: "Request access", exact: true }),
+      true,
+    ],
+    [
+      "hero Request access CTA",
+      main.getByRole("link", { name: "Request access", exact: true }),
+      true,
+    ],
+    [
+      "Email the access request CTA",
+      main.getByRole("link", { name: "Email the access request", exact: true }),
+      true,
+    ],
+  ];
+
+  for (const [label, control, hasFocusIndicatorContract] of keyboardFocusOrder) {
+    await page.keyboard.press("Tab");
+    await expect(control, `${label} should follow the keyboard focus order`).toBeFocused();
+    if (hasFocusIndicatorContract) {
+      await expectDefaultColorFocusIndicator(control, label);
+    }
+  }
 });
 
 test("reduced motion keeps the keyboard access path static and usable", async ({ page }) => {
