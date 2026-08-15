@@ -148,29 +148,17 @@ function assertDocumentTitleAndCharset(html, sourceFile) {
       return true;
     }
 
-    const isContentType =
-      meta.getAttribute("http-equiv")?.trim().toLowerCase() === "content-type";
+    const isContentType = meta.getAttribute("http-equiv")?.trim().toLowerCase() === "content-type";
     const content = meta.getAttribute("content") ?? "";
-    const match = content.match(
-      /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;\s"']+))/i,
-    );
-    return (
-      isContentType && Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim())
-    );
+    const match = content.match(/(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;\s"']+))/i);
+    return isContentType && Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim());
   });
   dom.window.close();
 
-  assert.equal(
-    titleTexts.length,
-    1,
-    `${sourceFile} must contain exactly one <title> element`,
-  );
+  assert.equal(titleTexts.length, 1, `${sourceFile} must contain exactly one <title> element`);
   assert.ok(titleTexts[0].trim(), `${sourceFile} must contain a non-empty <title>`);
 
-  assert.ok(
-    hasCharset,
-    `${sourceFile} must contain a non-empty character-set declaration`,
-  );
+  assert.ok(hasCharset, `${sourceFile} must contain a non-empty character-set declaration`);
 }
 
 function cssReferences(contents) {
