@@ -696,6 +696,37 @@ function assertCanonicalLink(html, sourceFile) {
   }
 }
 
+function assertBaseUrlsStayOnCanonicalOrigin(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    for (const base of dom.window.document.querySelectorAll("base[href]")) {
+      const href = base.getAttribute("href") ?? "";
+
+      assert.doesNotMatch(
+        href,
+        /^\s*[/\\]{2}/,
+        `${sourceFile} base href must not be protocol-relative: "${href}"`,
+      );
+
+      let url;
+      try {
+        url = new URL(href, `${canonicalOrigin}/`);
+      } catch (error) {
+        assert.fail(`${sourceFile} contains an invalid base href "${href}": ${error.message}`);
+      }
+
+      assert.equal(
+        url.origin,
+        canonicalOrigin,
+        `${sourceFile} base href must stay on ${canonicalOrigin}: "${href}"`,
+      );
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
@@ -1371,6 +1402,41 @@ test("the canonical-link scanner rejects missing or invalid canonicals", async (
     "utf8",
   );
   assert.doesNotThrow(() => assertCanonicalLink(valid, "canonical-valid.html"));
+});
+
+test("every base URL in exported HTML stays on the Store Canary origin", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertBaseUrlsStayOnCanonicalOrigin(html, htmlFile);
+  }
+});
+
+test("the base URL scanner accepts absent and same-origin bases", async () => {
+  for (const fixture of [
+    "base-none.html",
+    "base-same-origin-absolute.html",
+    "base-same-origin-relative.html",
+    "base-empty-relative.html",
+    "base-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertBaseUrlsStayOnCanonicalOrigin(html, fixture));
+  }
+});
+
+test("the base URL scanner rejects unsafe origins and schemes", async () => {
+  for (const [fixture, expectedError] of [
+    ["base-cross-origin.html", /base href must stay on https:\/\/storecanary\.app/],
+    ["base-http.html", /base href must stay on https:\/\/storecanary\.app/],
+    ["base-javascript.html", /base href must stay on https:\/\/storecanary\.app/],
+    ["base-data.html", /base href must stay on https:\/\/storecanary\.app/],
+    ["base-protocol-relative.html", /base href must not be protocol-relative/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertBaseUrlsStayOnCanonicalOrigin(html, fixture), expectedError);
+  }
 });
 
 test("the public export surface contains only approved files", async () => {
