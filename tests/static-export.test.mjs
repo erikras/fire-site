@@ -714,11 +714,7 @@ function assertExactlyOneNonEmptyMetaDescription(html, sourceFile) {
       (meta) => meta.getAttribute("name")?.toLowerCase() === "description",
     );
 
-    assert.equal(
-      descriptions.length,
-      1,
-      `${sourceFile} must contain exactly one meta description`,
-    );
+    assert.equal(descriptions.length, 1, `${sourceFile} must contain exactly one meta description`);
     assert.ok(
       descriptions[0].getAttribute("content")?.trim(),
       `${sourceFile} meta description content must be non-empty`,

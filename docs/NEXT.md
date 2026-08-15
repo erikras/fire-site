@@ -14,7 +14,7 @@
 8. Add a static-export check that every `img` has an `alt` attribute, permitting an empty value
    only when the image is explicitly decorative.
 9. Add a static-export check that resource source attributes such as `src`, `srcset`, and `poster`
-    never use `data:` URLs.
+   never use `data:` URLs.
 10. Add a static-export check that every form control has a non-empty accessible name.
 11. Add a static-export check that every `button` has a non-empty accessible name.
 12. Add a static-export check that the document body never has `aria-hidden="true"`.
