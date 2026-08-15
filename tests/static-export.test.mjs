@@ -113,6 +113,39 @@ function assertUniqueNonEmptyIds(html, sourceFile) {
   }
 }
 
+function assertAriaIdReferences(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+
+  try {
+    for (const attribute of ["aria-labelledby", "aria-describedby"]) {
+      for (const element of document.querySelectorAll(`[${attribute}]`)) {
+        const value = element.getAttribute(attribute) ?? "";
+        assert.ok(
+          value.trim(),
+          `${sourceFile} contains an empty or whitespace-only ${attribute} attribute`,
+        );
+
+        const referencedIds = value.split(/\s/);
+        assert.equal(
+          referencedIds.includes(""),
+          false,
+          `${sourceFile} contains an empty token in ${attribute}="${value}"`,
+        );
+
+        for (const referencedId of referencedIds) {
+          assert.ok(
+            document.getElementById(referencedId),
+            `${sourceFile} ${attribute} references missing id "${referencedId}"`,
+          );
+        }
+      }
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertDocumentLanguageAndViewport(html, sourceFile) {
   const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
   assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
@@ -346,6 +379,39 @@ test("the HTML ID scanner rejects duplicate and empty IDs", () => {
     () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
     /fixture\.html contains an empty id attribute/,
   );
+});
+
+test("every exported HTML document has resolvable ARIA ID references", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertAriaIdReferences(html, htmlFile);
+  }
+});
+
+test("the ARIA ID-reference scanner rejects invalid token lists", async () => {
+  for (const [fixture, expectedError] of [
+    ["missing-aria-target.html", /aria-labelledby references missing id "missing-label"/],
+    [
+      "empty-aria-labelledby.html",
+      /contains an empty or whitespace-only aria-labelledby attribute/,
+    ],
+    [
+      "whitespace-only-aria-describedby.html",
+      /contains an empty or whitespace-only aria-describedby attribute/,
+    ],
+    ["empty-aria-reference-token.html", /contains an empty token in aria-labelledby=/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertAriaIdReferences(html, fixture), expectedError);
+  }
+
+  const noReferences = await readFile(
+    path.join(staticExportFixtureDirectory, "no-aria-id-references.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertAriaIdReferences(noReferences, "no-aria-id-references.html"));
 });
 
 test("every exported HTML document declares its language and viewport metadata", async () => {
