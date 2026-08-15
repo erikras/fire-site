@@ -1115,6 +1115,27 @@ function assertNoDataLinkUrls(html, sourceFile) {
   }
 }
 
+function assertNoEmptyLinkHrefs(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const emptyHrefs = [...dom.window.document.querySelectorAll("a[href], area[href], link[href]")]
+      .filter((element) => !(element.getAttribute("href") ?? "").trim())
+      .map(
+        (element) =>
+          `"href" on <${element.localName}>: ${JSON.stringify(element.getAttribute("href") ?? "")}`,
+      );
+
+    assert.deepEqual(
+      emptyHrefs,
+      [],
+      `${sourceFile} contains empty href attributes: ${emptyHrefs.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoDataResourceUrls(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -2447,6 +2468,31 @@ test("the link URL-scheme scanner rejects data: hrefs and accepts safe URL forms
     "utf8",
   );
   assert.doesNotThrow(() => assertNoDataLinkUrls(safeUrls, "no-data-link-urls.html"));
+});
+
+test("every exported link href is non-empty", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoEmptyLinkHrefs(html, htmlFile);
+  }
+});
+
+test("the link href scanner rejects empty values and accepts non-empty hrefs and lookalikes", async () => {
+  for (const [fixture, expectedError] of [
+    ["empty-href-a.html", /contains empty href attributes: "href" on <a>: ""/],
+    ["empty-href-area.html", /contains empty href attributes: "href" on <area>: ""/],
+    ["whitespace-href-link.html", /contains empty href attributes: "href" on <link>:/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoEmptyLinkHrefs(html, fixture), expectedError);
+  }
+
+  for (const fixture of ["nonempty-link-hrefs.html", "empty-href-lookalikes.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoEmptyLinkHrefs(html, fixture));
+  }
 });
 
 test("every exported HTML document contains no data: resource source URLs", async () => {
