@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Table lookalikes fixture</title>
+    <script>
+      const example = "<table><tr><td>Example</td></tr></table>";
+    </script>
+    <style>
+      body::before {
+        content: "<table aria-label='Example'>";
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <table><caption>Commented table</caption></table> -->
+    <p>The escaped text &lt;table&gt; is not a table.</p>
+    <table-card>This custom element is not a table.</table-card>
+  </body>
+</html>

@@ -706,6 +706,28 @@ function assertButtonsHaveAccessibleNames(html, sourceFile) {
   }
 }
 
+function assertTablesHaveAccessibleNames(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+
+  try {
+    const unnamedTables = [...document.querySelectorAll("table")]
+      .filter((table) => {
+        const captionText = table.caption?.textContent ?? "";
+        return !captionText.trim() && !hasNonEmptyAccessibleName(table);
+      })
+      .map((table) => table.outerHTML);
+
+    assert.deepEqual(
+      unnamedTables,
+      [],
+      `${sourceFile} contains table elements without a non-empty caption or accessible name: ${unnamedTables.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1896,6 +1918,42 @@ test("the button name scanner rejects missing and empty accessible names", async
     assert.throws(
       () => assertButtonsHaveAccessibleNames(html, fixture),
       /contains button controls without a non-empty accessible name/,
+    );
+  }
+});
+
+test("every exported table has a non-empty caption or accessible name", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertTablesHaveAccessibleNames(html, htmlFile);
+  }
+});
+
+test("the table name scanner accepts captions, ARIA names, lookalikes, and documents without tables", async () => {
+  for (const fixture of [
+    "table-captioned.html",
+    "table-aria-label.html",
+    "table-aria-labelledby.html",
+    "table-comment-text-lookalikes.html",
+    "table-none.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertTablesHaveAccessibleNames(html, fixture));
+  }
+});
+
+test("the table name scanner rejects missing and whitespace-only names", async () => {
+  for (const fixture of [
+    "table-unlabeled.html",
+    "table-whitespace-caption.html",
+    "table-whitespace-aria-label.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertTablesHaveAccessibleNames(html, fixture),
+      /contains table elements without a non-empty caption or accessible name/,
     );
   }
 });
