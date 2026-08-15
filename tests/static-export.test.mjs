@@ -412,6 +412,22 @@ function assertIframesHaveNonEmptyTitles(html, sourceFile) {
   );
 }
 
+function assertImagesHaveValidAltText(html, sourceFile) {
+  const invalidImages = documentHtmlTags(html)
+    .filter(({ name, isClosing }) => name === "img" && !isClosing)
+    .filter(({ tag }) => {
+      const altValues = attributeValues(tag, "alt");
+      return altValues.length === 0 || (altValues[0] !== "" && !altValues[0].trim());
+    })
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    invalidImages,
+    [],
+    `${sourceFile} contains img elements with missing or whitespace-only alt attributes: ${invalidImages.join(", ")}`,
+  );
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1383,6 +1399,37 @@ test("the iframe title scanner rejects missing, empty, and whitespace-only title
     assert.throws(
       () => assertIframesHaveNonEmptyTitles(html, fixture),
       /contains iframe elements without a non-empty title/,
+    );
+  }
+});
+
+test("every exported image has an alt attribute", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertImagesHaveValidAltText(html, htmlFile);
+  }
+});
+
+test("the image alt scanner accepts absent, informative, decorative, and lookalike images", async () => {
+  for (const fixture of [
+    "image-none.html",
+    "image-informative-alt.html",
+    "image-decorative-alt.html",
+    "image-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertImagesHaveValidAltText(html, fixture));
+  }
+});
+
+test("the image alt scanner rejects missing and whitespace-only alt attributes", async () => {
+  for (const fixture of ["image-alt-missing.html", "image-alt-whitespace.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertImagesHaveValidAltText(html, fixture),
+      /contains img elements with missing or whitespace-only alt attributes/,
     );
   }
 });
