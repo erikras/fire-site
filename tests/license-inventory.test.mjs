@@ -7,13 +7,7 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
-const allowedLicenses = new Set([
-  "Apache-2.0",
-  "BSD-2-Clause",
-  "BSD-3-Clause",
-  "ISC",
-  "MIT",
-]);
+const allowedLicenses = new Set(["Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MIT"]);
 
 function parseLicenseRows(output) {
   const messages = output
@@ -25,7 +19,9 @@ function parseLicenseRows(output) {
   assert.ok(table, "Yarn did not return a license table");
 
   const { head, body } = table.data;
-  return body.map((values) => Object.fromEntries(head.map((heading, index) => [heading, values[index]])));
+  return body.map((values) =>
+    Object.fromEntries(head.map((heading, index) => [heading, values[index]])),
+  );
 }
 
 function productionInventory(rows, dependencies) {
@@ -34,7 +30,10 @@ function productionInventory(rows, dependencies) {
   return rows
     .filter((row) => productionNames.has(row.Name))
     .map(({ Name: name, Version: version, License: license }) => ({ license, name, version }))
-    .sort((left, right) => left.name.localeCompare(right.name) || left.version.localeCompare(right.version));
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) || left.version.localeCompare(right.version),
+    );
 }
 
 function inventoryErrors(inventory, dependencies) {
