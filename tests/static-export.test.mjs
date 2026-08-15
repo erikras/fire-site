@@ -1431,6 +1431,38 @@ function assertBaseUrlsStayOnCanonicalOrigin(html, sourceFile) {
   }
 }
 
+function assertManifestUrlsStayOnCanonicalOrigin(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const manifestLinks = [...dom.window.document.querySelectorAll("link")].filter((link) =>
+      (link.getAttribute("rel") ?? "")
+        .split(/\s+/)
+        .some((token) => token.toLowerCase() === "manifest"),
+    );
+
+    for (const link of manifestLinks) {
+      const href = (link.getAttribute("href") ?? "").trim();
+      assert.ok(href, `${sourceFile} manifest href must be non-empty`);
+
+      let url;
+      try {
+        url = new URL(href, `${canonicalOrigin}/`);
+      } catch (error) {
+        assert.fail(`${sourceFile} contains an invalid manifest href "${href}": ${error.message}`);
+      }
+
+      assert.equal(
+        url.origin,
+        canonicalOrigin,
+        `${sourceFile} manifest href must stay on ${canonicalOrigin}: "${href}"`,
+      );
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
@@ -2842,6 +2874,42 @@ test("the base URL scanner rejects unsafe origins and schemes", async () => {
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(() => assertBaseUrlsStayOnCanonicalOrigin(html, fixture), expectedError);
+  }
+});
+
+test("every manifest URL in exported HTML stays on the Store Canary origin", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertManifestUrlsStayOnCanonicalOrigin(html, htmlFile);
+  }
+});
+
+test("the manifest URL scanner accepts absent, same-origin, and lookalike manifests", async () => {
+  for (const fixture of [
+    "manifest-none.html",
+    "manifest-same-origin-relative.html",
+    "manifest-same-origin-absolute.html",
+    "manifest-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertManifestUrlsStayOnCanonicalOrigin(html, fixture));
+  }
+});
+
+test("the manifest URL scanner rejects unsafe origins and schemes", async () => {
+  for (const fixture of [
+    "manifest-cross-origin.html",
+    "manifest-protocol-relative-cross-origin.html",
+    "manifest-data.html",
+    "manifest-javascript.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertManifestUrlsStayOnCanonicalOrigin(html, fixture),
+      /manifest href must stay on https:\/\/storecanary\.app/,
+    );
   }
 });
 
