@@ -465,6 +465,49 @@ function visibleElementText(element) {
     .join("");
 }
 
+function hasNonEmptyAccessibleName(element, { includeText = false, includeValue = false } = {}) {
+  const { document } = element.ownerDocument.defaultView;
+
+  if (element.hasAttribute("aria-labelledby")) {
+    const value = element.getAttribute("aria-labelledby") ?? "";
+    const referencedIds = value.trim() ? value.trim().split(/\s+/) : [];
+    const referencedElements = referencedIds.map((id) => document.getElementById(id));
+
+    return (
+      referencedIds.length > 0 &&
+      referencedElements.every((referencedElement) => referencedElement !== null) &&
+      referencedElements
+        .map((referencedElement) => visibleElementText(referencedElement))
+        .join(" ")
+        .trim().length > 0
+    );
+  }
+
+  if (element.hasAttribute("aria-label")) {
+    return (element.getAttribute("aria-label") ?? "").trim().length > 0;
+  }
+
+  const labelText = [...(element.labels ?? [])]
+    .map((label) => visibleElementText(label))
+    .join(" ")
+    .trim();
+  if (labelText) {
+    return true;
+  }
+
+  if (includeText && visibleElementText(element).trim()) {
+    return true;
+  }
+
+  return includeValue && (element.getAttribute("value") ?? "").trim().length > 0;
+}
+
+const buttonInputTypes = new Set(["button", "reset", "submit"]);
+
+function isButtonInput(element) {
+  return element.localName === "input" && buttonInputTypes.has(element.type);
+}
+
 function assertFormControlsHaveAccessibleNames(html, sourceFile) {
   const dom = new JSDOM(html);
   const { document } = dom.window;
@@ -472,37 +515,40 @@ function assertFormControlsHaveAccessibleNames(html, sourceFile) {
   try {
     const unnamedControls = [...document.querySelectorAll("input, select, textarea")]
       .filter((control) => control.localName !== "input" || control.type !== "hidden")
-      .filter((control) => {
-        if (control.hasAttribute("aria-labelledby")) {
-          const value = control.getAttribute("aria-labelledby") ?? "";
-          const referencedIds = value.trim() ? value.trim().split(/\s+/) : [];
-          const referencedElements = referencedIds.map((id) => document.getElementById(id));
-
-          return (
-            referencedIds.length === 0 ||
-            referencedElements.some((element) => element === null) ||
-            !referencedElements
-              .map((element) => visibleElementText(element))
-              .join(" ")
-              .trim()
-          );
-        }
-
-        if (control.hasAttribute("aria-label")) {
-          return !(control.getAttribute("aria-label") ?? "").trim();
-        }
-
-        return ![...(control.labels ?? [])]
-          .map((label) => visibleElementText(label))
-          .join(" ")
-          .trim();
-      })
+      .filter((control) => !isButtonInput(control))
+      .filter((control) => !hasNonEmptyAccessibleName(control))
       .map((control) => control.outerHTML);
 
     assert.deepEqual(
       unnamedControls,
       [],
       `${sourceFile} contains input, select, or textarea controls without a non-empty accessible name: ${unnamedControls.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
+function assertButtonsHaveAccessibleNames(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+
+  try {
+    const unnamedButtons = [...document.querySelectorAll("button, input")]
+      .filter((control) => control.localName === "button" || isButtonInput(control))
+      .filter(
+        (control) =>
+          !hasNonEmptyAccessibleName(control, {
+            includeText: control.localName === "button",
+            includeValue: isButtonInput(control),
+          }),
+      )
+      .map((control) => control.outerHTML);
+
+    assert.deepEqual(
+      unnamedButtons,
+      [],
+      `${sourceFile} contains button controls without a non-empty accessible name: ${unnamedButtons.join(", ")}`,
     );
   } finally {
     dom.window.close();
@@ -1545,7 +1591,7 @@ test("the image alt scanner rejects missing and whitespace-only alt attributes",
   }
 });
 
-test("every exported input, select, and textarea has a non-empty accessible name", async () => {
+test("every exported non-button input, select, and textarea has a non-empty accessible name", async () => {
   const files = await inventory(exportDirectory);
 
   for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
@@ -1581,6 +1627,48 @@ test("the form-control name scanner rejects missing and empty accessible names",
     assert.throws(
       () => assertFormControlsHaveAccessibleNames(html, fixture),
       /contains input, select, or textarea controls without a non-empty accessible name/,
+    );
+  }
+});
+
+test("every exported button control has a non-empty accessible name", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertButtonsHaveAccessibleNames(html, htmlFile);
+  }
+});
+
+test("the button name scanner accepts text, labels, ARIA names, values, and lookalikes", async () => {
+  for (const fixture of [
+    "button-text.html",
+    "button-label.html",
+    "button-aria-label.html",
+    "button-aria-labelledby.html",
+    "button-input-values.html",
+    "button-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertButtonsHaveAccessibleNames(html, fixture));
+  }
+});
+
+test("the button name scanner rejects missing and empty accessible names", async () => {
+  for (const fixture of [
+    "button-empty.html",
+    "button-whitespace.html",
+    "button-icon-only.html",
+    "button-whitespace-aria-label.html",
+    "button-missing-aria-labelledby.html",
+    "button-empty-aria-labelledby-text.html",
+    "button-hidden-aria-labelledby-text.html",
+    "button-input-empty-values.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertButtonsHaveAccessibleNames(html, fixture),
+      /contains button controls without a non-empty accessible name/,
     );
   }
 });

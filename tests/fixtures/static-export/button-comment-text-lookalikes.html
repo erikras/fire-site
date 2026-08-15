@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Button lookalikes fixture</title>
+    <script>
+      const example = "<button type='button'></button>";
+    </script>
+    <style>
+      body::before {
+        content: "<input type='submit'>";
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <button type="button"></button> -->
+    <p>The escaped text &lt;button type="button"&gt; is not a button.</p>
+    <button-card>This custom element is not a button.</button-card>
+  </body>
+</html>

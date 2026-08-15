@@ -2,108 +2,111 @@
 
 ## Unblocked
 
-1. Add a static-export check that every `button` has a non-empty accessible name.
-2. Add a static-export check that the document body never has `aria-hidden="true"`.
-3. Add a static-export check that repeated landmarks have unique accessible names within each
+1. Add a static-export check that the document body never has `aria-hidden="true"`.
+2. Add a static-export check that repeated landmarks have unique accessible names within each
    document.
-4. Add a static-export check that no element has `aria-busy="true"`.
-5. Add a static-export check that every `table`, if any, has a caption or non-empty `aria-label`.
-6. Add a static-export check that generated links never use an empty `href=""`.
-7. Add a static-export check that any `link rel="manifest"` URL stays on the Store Canary origin.
-8. Add a static-export check that every `area`, if any, has a non-empty `alt` attribute.
-9. Add a static-export check that `download` is not used on cross-origin links.
-10. Add a static-export check that generated HTML contains no `ping` attributes.
-11. Add a static-export check that no element retains `aria-invalid="true"`.
-12. Add a static-export check that every `nav` has a non-empty accessible name when a document has
+3. Add a static-export check that no element has `aria-busy="true"`.
+4. Add a static-export check that every `table`, if any, has a caption or non-empty `aria-label`.
+5. Add a static-export check that generated links never use an empty `href=""`.
+6. Add a static-export check that any `link rel="manifest"` URL stays on the Store Canary origin.
+7. Add a static-export check that every `area`, if any, has a non-empty `alt` attribute.
+8. Add a static-export check that `download` is not used on cross-origin links.
+9. Add a static-export check that generated HTML contains no `ping` attributes.
+10. Add a static-export check that no element retains `aria-invalid="true"`.
+11. Add a static-export check that every `nav` has a non-empty accessible name when a document has
     more than one.
-13. Add a static-export check that the document body does not have a `hidden` attribute.
-14. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
+12. Add a static-export check that the document body does not have a `hidden` attribute.
+13. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
     non-empty content.
-15. Add a static-export check that no static disclosure retains `aria-expanded="true"`.
-16. Add a static-export check that every `label` with a `for` attribute references an existing
+14. Add a static-export check that no static disclosure retains `aria-expanded="true"`.
+15. Add a static-export check that every `label` with a `for` attribute references an existing
     control in the same document.
-17. Add a static-export check that the document body does not have `spellcheck="false"`.
-18. Add a static-export check that heading levels do not skip from one level to a deeper,
+16. Add a static-export check that the document body does not have `spellcheck="false"`.
+17. Add a static-export check that heading levels do not skip from one level to a deeper,
     non-adjacent level.
-19. Add a static-export check that generated HTML contains no obsolete presentational elements
+18. Add a static-export check that generated HTML contains no obsolete presentational elements
     such as `center`, `font`, or `big`.
-20. Add a static-export check that every inline `svg` is either hidden from assistive technology or
+19. Add a static-export check that every inline `svg` is either hidden from assistive technology or
     has a non-empty accessible name.
-21. Add a static-export check that every HTML document starts with exactly one HTML5 doctype.
-22. Add a static-export check that every `link rel="icon"` has a non-empty href that resolves inside
+20. Add a static-export check that every HTML document starts with exactly one HTML5 doctype.
+21. Add a static-export check that every `link rel="icon"` has a non-empty href that resolves inside
     the static export.
-23. Add a static-export check that generated HTML contains no `contenteditable` attributes.
-24. Add a static-export check that `lang` and `xml:lang` on an `html` element agree when both are
+22. Add a static-export check that generated HTML contains no `contenteditable` attributes.
+23. Add a static-export check that `lang` and `xml:lang` on an `html` element agree when both are
     present.
-25. Add a static-export check that no start tag contains duplicate attribute names.
-26. Add a static-export check that generated `audio` and `video` elements do not use `autoplay`.
-27. Add a static-export check that every `details`, if any, begins with a non-empty `summary`.
-28. Add a static-export check that every `fieldset`, if any, has a non-empty `legend`.
-29. Add a static-export check that `aria-live`, when present, uses only `off`, `polite`, or
+24. Add a static-export check that no start tag contains duplicate attribute names.
+25. Add a static-export check that generated `audio` and `video` elements do not use `autoplay`.
+26. Add a static-export check that every `details`, if any, begins with a non-empty `summary`.
+27. Add a static-export check that every `fieldset`, if any, has a non-empty `legend`.
+28. Add a static-export check that `aria-live`, when present, uses only `off`, `polite`, or
     `assertive`.
-30. Add a static-export check that every HTML document contains exactly one `main` landmark.
-31. Add a static-export check that every `aria-controls` token references an existing ID in the
+29. Add a static-export check that every HTML document contains exactly one `main` landmark.
+30. Add a static-export check that every `aria-controls` token references an existing ID in the
     same document.
-32. Add a static-export check that generated HTML contains no `http-equiv="set-cookie"` metadata.
-33. Add a static-export check that every character-set declaration appears within the first 1,024
+31. Add a static-export check that generated HTML contains no `http-equiv="set-cookie"` metadata.
+32. Add a static-export check that every character-set declaration appears within the first 1,024
     bytes of its HTML document.
-34. Add a static-export check that every `link rel="preload"`, if any, has a non-empty `as`
+33. Add a static-export check that every `link rel="preload"`, if any, has a non-empty `as`
     attribute.
-35. Add a static-export check that `meta name="referrer"`, when present, contains a recognized
+34. Add a static-export check that `meta name="referrer"`, when present, contains a recognized
     referrer-policy token.
-36. Add a static-export check that every `aria-label`, when present, contains non-whitespace text.
-37. Add a static-export check that `aria-current`, when present, uses a recognized token.
-38. Add a static-export check that token-list attributes such as `rel` contain no duplicate tokens.
-39. Add a static-export check that viewport metadata does not disable or excessively restrict
+35. Add a static-export check that every `aria-label`, when present, contains non-whitespace text.
+36. Add a static-export check that `aria-current`, when present, uses a recognized token.
+37. Add a static-export check that token-list attributes such as `rel` contain no duplicate tokens.
+38. Add a static-export check that viewport metadata does not disable or excessively restrict
     browser zoom.
-40. Add a static-export check that every `input type="image"`, if any, has a non-empty `alt`
+39. Add a static-export check that every `input type="image"`, if any, has a non-empty `alt`
     attribute.
-41. Add a static-export check that generated `iframe` elements contain no `srcdoc` attributes.
-42. Add a static-export check that every `object`, if any, has fallback text or a non-empty
+40. Add a static-export check that generated `iframe` elements contain no `srcdoc` attributes.
+41. Add a static-export check that every `object`, if any, has fallback text or a non-empty
     accessible name.
-43. Add a static-export check that the document `html` element never has `aria-hidden="true"`.
-44. Add a static-export check that every `title` attribute, when present, contains non-whitespace
+42. Add a static-export check that the document `html` element never has `aria-hidden="true"`.
+43. Add a static-export check that every `title` attribute, when present, contains non-whitespace
     text.
-45. Add a static-export check that `aria-sort`, when present, uses only `ascending`, `descending`,
+44. Add a static-export check that `aria-sort`, when present, uses only `ascending`, `descending`,
     `none`, or `other`.
-46. Add a static-export check that every `meter` and `progress` element has a non-empty accessible
+45. Add a static-export check that every `meter` and `progress` element has a non-empty accessible
     name.
-47. Add a static-export check that every `script` with a `src` attribute has a non-empty URL that
+46. Add a static-export check that every `script` with a `src` attribute has a non-empty URL that
     resolves inside the static export.
-48. Add a static-export check that every stylesheet link has a non-empty `href` that resolves
+47. Add a static-export check that every stylesheet link has a non-empty `href` that resolves
     inside the static export.
-49. Add a static-export check that every form submission target, if any, stays on the Store Canary
+48. Add a static-export check that every form submission target, if any, stays on the Store Canary
     origin.
-50. Add a static-export check that generated links never use protocol-relative `//` URLs.
-51. Add a static-export check that every `link` element has a non-empty `rel` token list.
-52. Add a static-export check that elements with a `hidden` attribute contain no focusable
+49. Add a static-export check that generated links never use protocol-relative `//` URLs.
+50. Add a static-export check that every `link` element has a non-empty `rel` token list.
+51. Add a static-export check that elements with a `hidden` attribute contain no focusable
     descendants.
-53. Add a static-export check that every heading contains non-whitespace text or has a non-empty
+52. Add a static-export check that every heading contains non-whitespace text or has a non-empty
     accessible name.
-54. Add a static-export check that generated HTML contains no obsolete `frame`, `frameset`, or
+53. Add a static-export check that generated HTML contains no obsolete `frame`, `frameset`, or
     `applet` elements.
-55. Add a static-export check that every `source`, if any, has a non-empty `src` or `srcset`
+54. Add a static-export check that every `source`, if any, has a non-empty `src` or `srcset`
     attribute.
-56. Add a static-export check that URL-bearing attributes never contain embedded username or
+55. Add a static-export check that URL-bearing attributes never contain embedded username or
     password credentials.
-57. Add a static-export check that any `base` element contains no `target` attribute.
-58. Add a static-export check that `meta http-equiv="content-security-policy"`, when present, has
+56. Add a static-export check that any `base` element contains no `target` attribute.
+57. Add a static-export check that `meta http-equiv="content-security-policy"`, when present, has
     non-empty content.
-59. Add a static-export check that every `map`, if any, has a non-empty, unique `name` attribute.
-60. Add a static-export check that every `img usemap`, if any, references an existing named `map`
+58. Add a static-export check that every `map`, if any, has a non-empty, unique `name` attribute.
+59. Add a static-export check that every `img usemap`, if any, references an existing named `map`
     in the same document.
-61. Add a static-export check that integer-valued attributes such as `colspan`, `rowspan`, and
+60. Add a static-export check that integer-valued attributes such as `colspan`, `rowspan`, and
     `maxlength` contain valid positive integers when present.
-62. Add a static-export check that every `img` has a non-empty `src` or `srcset` attribute.
-63. Add a static-export check that every `track`, if any, has non-empty `src`, `kind`, and `label`
+61. Add a static-export check that every `img` has a non-empty `src` or `srcset` attribute.
+62. Add a static-export check that every `track`, if any, has non-empty `src`, `kind`, and `label`
     attributes.
-64. Add a static-export check that every `time` with a `datetime` attribute uses a valid
+63. Add a static-export check that every `time` with a `datetime` attribute uses a valid
     machine-readable date or time.
-65. Add a static-export check that every `input type`, when present, uses a recognized HTML input
+64. Add a static-export check that every `input type`, when present, uses a recognized HTML input
     type token.
-66. Add a static-export check that every `option` has non-whitespace text or a non-empty `label`
+65. Add a static-export check that every `option` has non-whitespace text or a non-empty `label`
     attribute.
-67. Add a static-export check that every `optgroup`, if any, has a non-empty `label` attribute.
+66. Add a static-export check that every `optgroup`, if any, has a non-empty `label` attribute.
+67. Add a static-export check that generated HTML contains no `inert` attributes.
+68. Add a static-export check that `aria-pressed`, when present, uses only `true`, `false`, or
+    `mixed`.
+69. Add a static-export check that `aria-selected`, when present, uses only `true` or `false`.
 
 ## Waits on Erik
 
