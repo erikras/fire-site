@@ -16,6 +16,7 @@
     "test:export": "node --test tests/static-export.test.mjs",
     "test:asset-size": "node --test tests/asset-size-budget.test.mjs",
     "test:wrangler": "node --test tests/wrangler-integration.test.mjs",
+    "test:workflows": "bash scripts/lint-workflows.sh",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
