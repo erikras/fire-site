@@ -136,6 +136,41 @@ function assertDocumentLanguageAndViewport(html, sourceFile) {
   );
 }
 
+function assertDocumentTitleAndCharset(html, sourceFile) {
+  const titleElements = [...html.matchAll(/<title\b[^<>]*>([\s\S]*?)<\/title\s*>/gi)];
+  assert.equal(
+    titleElements.length,
+    1,
+    `${sourceFile} must contain exactly one <title> element`,
+  );
+  assert.ok(titleElements[0][1].trim(), `${sourceFile} must contain a non-empty <title>`);
+
+  const metaTags = [...html.matchAll(/<meta\b[^<>]*>/gi)].map(([tag]) => tag);
+  const hasCharset = metaTags.some((tag) => {
+    if (attributeValues(tag, "charset").some((charset) => charset.trim())) {
+      return true;
+    }
+
+    const isContentType = attributeValues(tag, "http-equiv").some(
+      (value) => value.trim().toLowerCase() === "content-type",
+    );
+    return (
+      isContentType &&
+      attributeValues(tag, "content").some((content) => {
+        const match = content.match(
+          /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;\s"']+))/i,
+        );
+        return Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim());
+      })
+    );
+  });
+
+  assert.ok(
+    hasCharset,
+    `${sourceFile} must contain a non-empty character-set declaration`,
+  );
+}
+
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
@@ -347,6 +382,42 @@ test("the document metadata scanner rejects missing and empty values", async () 
     assertDocumentLanguageAndViewport(
       '<html xml:lang="en-US"><head><meta content="width=device-width" name="VIEWPORT"></head></html>',
       "valid-xml-lang.html",
+    ),
+  );
+});
+
+test("every exported HTML document has one non-empty title and a character set", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertDocumentTitleAndCharset(html, htmlFile);
+  }
+});
+
+test("the title and character-set scanner rejects invalid document metadata", async () => {
+  for (const [fixture, expectedError] of [
+    ["missing-title.html", /must contain exactly one <title> element/],
+    ["empty-title.html", /must contain a non-empty <title>/],
+    ["whitespace-title.html", /must contain a non-empty <title>/],
+    ["multiple-titles.html", /must contain exactly one <title> element/],
+    ["missing-charset.html", /must contain a non-empty character-set declaration/],
+    ["empty-charset.html", /must contain a non-empty character-set declaration/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertDocumentTitleAndCharset(html, fixture), expectedError);
+  }
+
+  assert.doesNotThrow(() =>
+    assertDocumentTitleAndCharset(
+      "<head><meta charset='UTF-8'><title>Store Canary</title></head>",
+      "valid-charset.html",
+    ),
+  );
+  assert.doesNotThrow(() =>
+    assertDocumentTitleAndCharset(
+      '<head><meta HTTP-EQUIV="Content-Type" content="text/html; charset=utf-8"><title>Store Canary</title></head>',
+      "valid-content-type.html",
     ),
   );
 });
