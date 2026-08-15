@@ -668,6 +668,52 @@ test("keyboard users can skip the navigation and reach the main content", async 
   ).toBeVisible();
 });
 
+test("keyboard users can activate the existing mailto access request", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.addEventListener(
+      "click",
+      (event) => {
+        const mailto = event
+          .composedPath()
+          .find(
+            (target): target is HTMLAnchorElement =>
+              target instanceof HTMLAnchorElement && target.protocol === "mailto:",
+          );
+
+        if (!mailto) {
+          return;
+        }
+
+        event.preventDefault();
+        Reflect.set(window, "__storeCanaryActivatedMailto", {
+          detail: event.detail,
+          href: mailto.getAttribute("href"),
+        });
+      },
+      { capture: true },
+    );
+  });
+
+  await expectKeyboardAccessPathToWork(page);
+
+  const emailAccessRequest = page.getByRole("main").getByRole("link", {
+    name: "Email the access request",
+    exact: true,
+  });
+  const expectedMailtoHref = await emailAccessRequest.getAttribute("href");
+  expect(expectedMailtoHref).not.toBeNull();
+
+  await page.keyboard.press("Enter");
+  expect(
+    await page.evaluate(() => Reflect.get(window, "__storeCanaryActivatedMailto")),
+  ).toEqual({
+    detail: 0,
+    href: expectedMailtoHref,
+  });
+  await expect(emailAccessRequest).toBeFocused();
+  await expect(page).toHaveURL(/#apply$/);
+});
+
 test("keyboard focus follows document order without trapping users", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/");

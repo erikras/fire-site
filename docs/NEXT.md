@@ -2,10 +2,9 @@
 
 ## Unblocked
 
-1. Add a no-deploy browser regression for keyboard-only request-access navigation.
-2. Add a deterministic check that the static export makes no unexpected third-party browser requests.
-3. Add a deterministic check that tracked text files contain no unresolved merge-conflict markers.
-4. Add a no-deploy browser regression for reduced-motion behavior.
+1. Add a deterministic check that the static export makes no unexpected third-party browser requests.
+2. Add a deterministic check that tracked text files contain no unresolved merge-conflict markers.
+3. Add a no-deploy browser regression for reduced-motion behavior.
 
 ## Waits on Erik
 
