@@ -704,9 +704,7 @@ test("keyboard users can activate the existing mailto access request", async ({ 
   expect(expectedMailtoHref).not.toBeNull();
 
   await page.keyboard.press("Enter");
-  expect(
-    await page.evaluate(() => Reflect.get(window, "__storeCanaryActivatedMailto")),
-  ).toEqual({
+  expect(await page.evaluate(() => Reflect.get(window, "__storeCanaryActivatedMailto"))).toEqual({
     detail: 0,
     href: expectedMailtoHref,
   });
