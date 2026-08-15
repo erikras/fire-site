@@ -872,6 +872,29 @@ function assertExactlyOneNonEmptyMetaDescription(html, sourceFile) {
   }
 }
 
+function assertLandingPageAllowsIndexing(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const disallowedDirectives = [...dom.window.document.querySelectorAll("meta")]
+      .filter((meta) => meta.getAttribute("name")?.trim().toLowerCase() === "robots")
+      .flatMap((meta) =>
+        (meta.getAttribute("content") ?? "")
+          .toLowerCase()
+          .split(/[\s,]+/)
+          .filter((token) => token === "noindex" || token === "none"),
+      );
+
+    assert.deepEqual(
+      disallowedDirectives,
+      [],
+      `${sourceFile} meta robots must not contain noindex or none`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertCanonicalLink(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1830,6 +1853,38 @@ test("the meta-description scanner rejects missing, empty, whitespace-only, and 
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(() => assertExactlyOneNonEmptyMetaDescription(html, fixture), expectedError);
+  }
+});
+
+test("the landing-page export does not block search indexing", async () => {
+  const html = await readFile(path.join(exportDirectory, "index.html"), "utf8");
+
+  assertLandingPageAllowsIndexing(html, "index.html");
+});
+
+test("the robots metadata scanner allows omitted and indexing-safe directives", async () => {
+  for (const fixture of [
+    "meta-robots-missing.html",
+    "meta-robots-index.html",
+    "meta-robots-nofollow.html",
+    "meta-robots-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertLandingPageAllowsIndexing(html, fixture));
+  }
+});
+
+test("the robots metadata scanner rejects noindex, none, and mixed directives", async () => {
+  for (const fixture of [
+    "meta-robots-noindex.html",
+    "meta-robots-none.html",
+    "meta-robots-mixed.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertLandingPageAllowsIndexing(html, fixture),
+      /meta robots must not contain noindex or none/,
+    );
   }
 });
 
