@@ -14,7 +14,7 @@
 7. Add a static-export check that generated HTML contains no obsolete presentational elements such
    as `center`, `font`, or `big`.
 8. Add a static-export check that every inline `svg` is either hidden from assistive technology or
-    has a non-empty accessible name.
+   has a non-empty accessible name.
 9. Add a static-export check that every HTML document starts with exactly one HTML5 doctype.
 10. Add a static-export check that every `link rel="icon"` has a non-empty href that resolves inside
     the static export.
