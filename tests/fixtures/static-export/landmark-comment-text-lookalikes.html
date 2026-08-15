@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Landmark lookalikes fixture</title>
+    <script>
+      const example = '<nav role="navigation"></nav>';
+    </script>
+    <style>
+      body::before {
+        content: "<aside aria-label='Related'></aside>";
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <nav></nav><nav></nav> -->
+    <p>The escaped text &lt;div role="search"&gt; is not a landmark.</p>
+    <nav-card>Custom elements do not gain native landmark roles.</nav-card>
+    <nav><a href="/">Home</a></nav>
+  </body>
+</html>
