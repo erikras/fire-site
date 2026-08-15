@@ -945,6 +945,32 @@ function assertNoAriaBusyTrue(html, sourceFile) {
   }
 }
 
+function assertNoAriaInvalidTrue(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const invalidElements = [...dom.window.document.querySelectorAll("*")]
+      .filter((element) =>
+        element
+          .getAttributeNames()
+          .some(
+            (attributeName) =>
+              attributeName.toLowerCase() === "aria-invalid" &&
+              element.getAttribute(attributeName)?.trim().toLowerCase() === "true",
+          ),
+      )
+      .map((element) => element.outerHTML);
+
+    assert.deepEqual(
+      invalidElements,
+      [],
+      `${sourceFile} contains elements with aria-invalid="true": ${invalidElements.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertAriaIdReferences(html, sourceFile) {
   const dom = new JSDOM(html);
   const { document } = dom.window;
@@ -2313,6 +2339,36 @@ test("the aria-busy scanner rejects true values case-insensitively", async () =>
     assert.throws(
       () => assertNoAriaBusyTrue(html, fixture),
       /contains elements with aria-busy="true"/,
+    );
+  }
+});
+
+test('every exported HTML document contains no aria-invalid="true" attributes', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoAriaInvalidTrue(html, htmlFile);
+  }
+});
+
+test("the aria-invalid scanner accepts omitted, false, and comment or text lookalikes", async () => {
+  for (const fixture of [
+    "aria-invalid-omitted.html",
+    "aria-invalid-false.html",
+    "aria-invalid-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoAriaInvalidTrue(html, fixture));
+  }
+});
+
+test("the aria-invalid scanner rejects true values case-insensitively", async () => {
+  for (const fixture of ["aria-invalid-true.html", "aria-invalid-mixed-case.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertNoAriaInvalidTrue(html, fixture),
+      /contains elements with aria-invalid="true"/,
     );
   }
 });
