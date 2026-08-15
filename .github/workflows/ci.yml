@@ -28,14 +28,5 @@ jobs:
           node -e "if (process.versions.node.split('.')[0] !== '22') throw new Error('Node 22 is required')"
           test "$(yarn --version)" = "1.22.22"
       - run: yarn install --frozen-lockfile
-      - run: yarn lint
-      - run: yarn typecheck
-      - run: yarn test
       - run: yarn playwright install --with-deps chromium
-      - run: yarn test:e2e
-      - run: yarn format:check
-      - run: yarn build
-      - run: yarn test:export
-      - run: yarn test:asset-size
-      - run: yarn test:wrangler
-      - run: yarn audit --level high
+      - run: yarn quality

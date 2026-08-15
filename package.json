@@ -19,6 +19,7 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "quality": "yarn lint && yarn typecheck && yarn test && yarn test:e2e && yarn format:check && yarn build && yarn test:export && yarn test:asset-size && yarn test:wrangler && yarn audit --level high",
     "deploy:cloudflare": "yarn build && npx wrangler@4.120.1 deploy"
   },
   "dependencies": {

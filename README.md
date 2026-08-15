@@ -27,16 +27,10 @@ Do not deploy this project to Vercel unless Erik explicitly overrides the hostin
 ## Quality gate
 
 ```bash
-yarn lint
-yarn typecheck
-yarn test
-yarn test:e2e
-yarn build
-yarn test:export
-yarn test:wrangler
-yarn format:check
-yarn audit --level high
+yarn quality
 ```
+
+Playwright browsers are a local prerequisite (`yarn playwright install chromium`); `yarn quality` mirrors CI's non-setup checks and includes `test:asset-size`.
 
 `test:wrangler` starts local HTTP and HTTPS `wrangler dev --local` servers against the
 built `out/` directory. It disables Wrangler telemetry and needs neither Cloudflare

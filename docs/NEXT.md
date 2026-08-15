@@ -2,10 +2,9 @@
 
 ## Unblocked
 
-1. Add one non-deploying local quality command that mirrors the CI checks and use it in the development documentation to prevent command drift.
-2. Add a no-deploy workflow-lint check for GitHub Actions syntax, expressions, and embedded shell.
-3. Add Markdown linting and link checks for repository documentation.
-4. Add a CI regression check that keeps workflow permissions read-only and prevents deploy commands from entering the quality job.
+1. Add a no-deploy workflow-lint check for GitHub Actions syntax, expressions, and embedded shell.
+2. Add Markdown linting and link checks for repository documentation.
+3. Add a CI regression check that keeps workflow permissions read-only and prevents deploy commands from entering the quality job.
 
 ## Waits on Erik
 
