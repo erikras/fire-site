@@ -1242,6 +1242,37 @@ function assertBlankTargetsUseNoopener(html, sourceFile) {
   }
 }
 
+function assertDownloadUrlsStayOnCanonicalOrigin(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    for (const element of dom.window.document.querySelectorAll("a[download], area[download]")) {
+      const href = element.getAttribute("href");
+      assert.ok(
+        href?.trim(),
+        `${sourceFile} <${element.localName} download> href must be non-empty`,
+      );
+
+      let url;
+      try {
+        url = new URL(href, `${canonicalOrigin}/`);
+      } catch (error) {
+        assert.fail(
+          `${sourceFile} contains an invalid <${element.localName} download> href "${href}": ${error.message}`,
+        );
+      }
+
+      assert.equal(
+        url.origin,
+        canonicalOrigin,
+        `${sourceFile} <${element.localName} download> href must stay on ${canonicalOrigin}: "${href}"`,
+      );
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertDocumentLanguageAndViewport(html, sourceFile) {
   const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
   assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
@@ -2669,6 +2700,42 @@ test('the target="_blank" scanner enforces protective rel tokens', async () => {
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertBlankTargetsUseNoopener(html, fixture));
+  }
+});
+
+test("every exported download link stays on the Store Canary origin", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertDownloadUrlsStayOnCanonicalOrigin(html, htmlFile);
+  }
+});
+
+test("the download URL scanner accepts same-origin, relative, absent, and lookalike downloads", async () => {
+  for (const fixture of [
+    "download-same-origin.html",
+    "download-relative.html",
+    "download-none.html",
+    "download-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertDownloadUrlsStayOnCanonicalOrigin(html, fixture));
+  }
+});
+
+test("the download URL scanner rejects cross-origin and unsupported download URLs", async () => {
+  for (const fixture of [
+    "download-cross-origin.html",
+    "download-protocol-relative-cross-origin.html",
+    "download-data.html",
+    "download-javascript.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertDownloadUrlsStayOnCanonicalOrigin(html, fixture),
+      /download> href must stay on https:\/\/storecanary\.app/,
+    );
   }
 });
 
