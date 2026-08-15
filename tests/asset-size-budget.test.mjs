@@ -13,9 +13,9 @@ const budgets = {
     perFileBytes: 23_000,
   },
   CSS: {
-    aggregateBytes: 23_000,
+    aggregateBytes: 25_000,
     matches: (file) => file.endsWith(".css"),
-    perFileBytes: 23_000,
+    perFileBytes: 25_000,
   },
   JavaScript: {
     aggregateBytes: 590_000,

@@ -815,6 +815,61 @@ test("forced colors preserves landmarks, focus, CTAs, and textual status cues", 
   await expect(page.locator(".product-preview")).toHaveCSS("box-shadow", "none");
 });
 
+test("print media keeps the explanation and both access CTAs readable", async ({ page }) => {
+  await page.emulateMedia({ media: "print" });
+  await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
+
+  expect(await page.evaluate(() => matchMedia("print").matches)).toBe(true);
+
+  const main = page.getByRole("main");
+  const keyExplanation = [
+    main.getByRole("heading", {
+      level: 1,
+      name: "The quiet morning check for a busy WooCommerce store.",
+    }),
+    main.getByText(
+      "Daily Ops finds operational exceptions—stuck paid orders, failed payments, new stockouts, and broken scheduled actions—and turns them into one concise, actionable digest.",
+      { exact: true },
+    ),
+    main.getByRole("heading", {
+      name: "Operational truth without another cloud dashboard.",
+    }),
+    main.getByText(
+      "Store owners and WooCommerce operators who want fewer surprises and less dashboard patrol.",
+      { exact: true },
+    ),
+    main.getByRole("heading", { name: "Put Daily Ops to work on your store." }),
+  ];
+  const availability = main.getByText("Available by request", { exact: true });
+  const requestDetails = page.locator("#apply li");
+  const requestAccess = main.getByRole("link", { name: "Request access", exact: true });
+  const emailAccessRequest = main.getByRole("link", {
+    name: "Email the access request",
+    exact: true,
+  });
+
+  for (const copy of keyExplanation) {
+    await expect(copy).toBeVisible();
+  }
+  await expect(availability).toHaveCount(2);
+  await expect(requestDetails).toHaveCount(4);
+  await expect(page.getByText("homer.agent.erik@gmail.com")).toBeVisible();
+  await expect(requestAccess).toBeVisible();
+  await expect(requestAccess).toHaveAttribute("href", "#apply");
+  await expect(emailAccessRequest).toBeVisible();
+  await expect(emailAccessRequest).toHaveAttribute(
+    "href",
+    /^mailto:homer\.agent\.erik@gmail\.com\?subject=/,
+  );
+
+  await expectTextToRemainReadable(availability, "print availability");
+  await expectTextToRemainReadable(requestDetails, "print access-request details");
+  await expectTextToRemainReadable(main.locator("a.button"), "print access CTAs");
+  await expect(page.locator(".preview-chrome")).toBeHidden();
+  await expect(page.locator(".product-preview")).toBeVisible();
+});
+
 test("the browser privacy boundary permits only the email CTA", async ({
   baseURL,
   context,
