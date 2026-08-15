@@ -4,6 +4,7 @@ export type Product = {
   shortName: string;
   eyebrow: string;
   promise: string;
+  offer: string;
   description: string;
   stage: string;
   cta: string;
@@ -24,6 +25,8 @@ export const products: Product[] = [
     shortName: "Daily Ops",
     eyebrow: "Know what needs attention before your customers tell you",
     promise: "The quiet morning check for a busy WooCommerce store.",
+    offer:
+      "WooCommerce Daily Ops finds operational exceptions and turns them into one concise, actionable daily digest.",
     description:
       "Daily Ops finds operational exceptions—stuck paid orders, failed payments, new stockouts, and broken scheduled actions—and turns them into one concise, actionable digest.",
     stage: "Available by request",

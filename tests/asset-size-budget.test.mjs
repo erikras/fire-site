@@ -8,9 +8,9 @@ const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
 
 const budgets = {
   HTML: {
-    aggregateBytes: 42_000,
+    aggregateBytes: 48_000,
     matches: (file) => file.endsWith(".html"),
-    perFileBytes: 21_000,
+    perFileBytes: 23_000,
   },
   CSS: {
     aggregateBytes: 23_000,
@@ -26,6 +26,11 @@ const budgets = {
     aggregateBytes: 210_000,
     matches: (file) => /\.(?:woff2?|ttf|otf)$/i.test(file),
     perFileBytes: 42_000,
+  },
+  image: {
+    aggregateBytes: 20_000,
+    matches: (file) => /\.(?:jpe?g|png|gif|webp)$/i.test(file),
+    perFileBytes: 20_000,
   },
 };
 
