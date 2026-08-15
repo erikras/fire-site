@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 22
           cache: yarn
+      - name: Verify toolchain
+        run: |
+          corepack enable
+          node -e "if (process.versions.node.split('.')[0] !== '22') throw new Error('Node 22 is required')"
+          test "$(yarn --version)" = "1.22.22"
       - run: yarn install --frozen-lockfile
       - run: yarn lint
       - run: yarn typecheck

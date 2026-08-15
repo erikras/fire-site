@@ -6,7 +6,10 @@ Store Canary catches stuck paid orders, failed payments, new stockouts, and brok
 
 ## Development
 
+Use Node 22 and enable Corepack so the `package.json` Yarn 1.22.22 pin is honored:
+
 ```bash
+corepack enable
 yarn
 yarn dev
 ```
