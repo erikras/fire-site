@@ -209,6 +209,47 @@ function assertDocumentTitleAndCharset(html, sourceFile) {
   assert.ok(hasCharset, `${sourceFile} must contain a non-empty character-set declaration`);
 }
 
+function assertCanonicalLink(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const canonicalLinks = [...dom.window.document.querySelectorAll("link")].filter((link) =>
+      (link.getAttribute("rel") ?? "")
+        .split(/\s+/)
+        .some((token) => token.toLowerCase() === "canonical"),
+    );
+
+    assert.equal(
+      canonicalLinks.length,
+      1,
+      `${sourceFile} must contain exactly one rel=canonical link`,
+    );
+
+    const href = (canonicalLinks[0].getAttribute("href") ?? "").trim();
+    assert.ok(href, `${sourceFile} canonical href must be non-empty`);
+
+    let canonicalUrl;
+    try {
+      canonicalUrl = new URL(href);
+    } catch {
+      assert.fail(`${sourceFile} canonical href must be an absolute URL: "${href}"`);
+    }
+
+    assert.equal(
+      canonicalUrl.protocol,
+      "https:",
+      `${sourceFile} canonical href must use HTTPS: "${href}"`,
+    );
+    assert.equal(
+      canonicalUrl.origin,
+      canonicalOrigin,
+      `${sourceFile} canonical href must use ${canonicalOrigin}: "${href}"`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
@@ -514,6 +555,35 @@ test("the title and character-set scanner rejects invalid document metadata", as
       "valid-content-type.html",
     ),
   );
+});
+
+test("every exported HTML document has one canonical Store Canary URL", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertCanonicalLink(html, htmlFile);
+  }
+});
+
+test("the canonical-link scanner rejects missing or invalid canonicals", async () => {
+  for (const [fixture, expectedError] of [
+    ["canonical-missing.html", /must contain exactly one rel=canonical link/],
+    ["canonical-duplicate.html", /must contain exactly one rel=canonical link/],
+    ["canonical-empty.html", /canonical href must be non-empty/],
+    ["canonical-relative.html", /canonical href must be an absolute URL/],
+    ["canonical-http.html", /canonical href must use HTTPS/],
+    ["canonical-wrong-host.html", /canonical href must use https:\/\/storecanary\.app/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertCanonicalLink(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(
+    path.join(staticExportFixtureDirectory, "canonical-valid.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertCanonicalLink(valid, "canonical-valid.html"));
 });
 
 test("the public export surface contains only approved files", async () => {
