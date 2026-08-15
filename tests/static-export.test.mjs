@@ -130,6 +130,29 @@ function attributeValues(tag, attributeName) {
     .map((match) => match[2] ?? match[3] ?? match[4] ?? "");
 }
 
+function assertValidTabIndexValues(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const invalidValues = [...dom.window.document.querySelectorAll("[tabindex]")]
+      .map((element) => element.getAttribute("tabindex") ?? "")
+      .filter((value) => {
+        const numericValue = value.trim();
+        return !/^[+-]?\d+$/.test(numericValue) || BigInt(numericValue) > 0n;
+      });
+
+    assert.deepEqual(
+      invalidValues,
+      [],
+      `${sourceFile} contains invalid tabindex values: ${invalidValues
+        .map((value) => JSON.stringify(value))
+        .join(", ")}; values must be integers less than or equal to 0`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertUniqueNonEmptyIds(html, sourceFile) {
   const seenIds = new Set();
 
@@ -587,6 +610,36 @@ test("the HTML ID scanner rejects duplicate and empty IDs", () => {
     () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
     /fixture\.html contains an empty id attribute/,
   );
+});
+
+test("every exported HTML document has only non-positive numeric tabindex values", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertValidTabIndexValues(html, htmlFile);
+  }
+});
+
+test("the tabindex scanner rejects positive and malformed values", async () => {
+  for (const fixture of [
+    "tabindex-positive-one.html",
+    "tabindex-positive-plus-two.html",
+    "tabindex-empty.html",
+    "tabindex-non-numeric.html",
+    "tabindex-whitespace-only.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertValidTabIndexValues(html, fixture),
+      /contains invalid tabindex values/,
+    );
+  }
+
+  for (const fixture of ["tabindex-zero.html", "tabindex-negative-one.html", "no-tabindex.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertValidTabIndexValues(html, fixture));
+  }
 });
 
 test("every exported HTML document has resolvable ARIA ID references", async () => {
