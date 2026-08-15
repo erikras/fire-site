@@ -2,9 +2,9 @@
 
 ## Unblocked
 
-1. Add a static-export check that the document body never has `aria-hidden="true"`.
-2. Add a static-export check that repeated landmarks have unique accessible names within each
+1. Add a static-export check that repeated landmarks have unique accessible names within each
    document.
+2. Add a static-export check that `aria-haspopup`, when present, uses a recognized token.
 3. Add a static-export check that no element has `aria-busy="true"`.
 4. Add a static-export check that every `table`, if any, has a caption or non-empty `aria-label`.
 5. Add a static-export check that generated links never use an empty `href=""`.
@@ -107,6 +107,10 @@
 68. Add a static-export check that `aria-pressed`, when present, uses only `true`, `false`, or
     `mixed`.
 69. Add a static-export check that `aria-selected`, when present, uses only `true` or `false`.
+70. Add a static-export check that `aria-orientation`, when present, uses only `horizontal` or
+    `vertical`.
+71. Add a static-export check that `aria-relevant`, when present, contains only recognized,
+    non-duplicate tokens.
 
 ## Waits on Erik
 

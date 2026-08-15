@@ -360,6 +360,21 @@ function assertSingleHtmlAndBody(html, sourceFile) {
   );
 }
 
+function assertBodyIsNotAriaHidden(html, sourceFile) {
+  const hiddenBodies = documentElementStartTags(html)
+    .filter(({ name }) => name === "body")
+    .filter(({ tag }) =>
+      attributeValues(tag, "aria-hidden").some((value) => value.trim() === "true"),
+    )
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    hiddenBodies,
+    [],
+    `${sourceFile} contains a <body> with aria-hidden="true": ${hiddenBodies.join(", ")}`,
+  );
+}
+
 function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
@@ -1402,6 +1417,36 @@ test("the document-element scanner enforces one html and one body element", asyn
     "utf8",
   );
   assert.doesNotThrow(() => assertSingleHtmlAndBody(valid, "document-elements-valid.html"));
+});
+
+test('every exported HTML document body does not have aria-hidden="true"', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertBodyIsNotAriaHidden(html, htmlFile);
+  }
+});
+
+test("the body aria-hidden scanner accepts omitted, false, and lookalike attributes", async () => {
+  for (const fixture of [
+    "body-aria-hidden-omitted.html",
+    "body-aria-hidden-false.html",
+    "body-aria-hidden-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertBodyIsNotAriaHidden(html, fixture));
+  }
+});
+
+test('the body aria-hidden scanner rejects aria-hidden="true"', async () => {
+  for (const fixture of ["body-aria-hidden-true.html", "body-aria-hidden-mixed-case.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertBodyIsNotAriaHidden(html, fixture),
+      /contains a <body> with aria-hidden="true"/,
+    );
+  }
 });
 
 test("every exported HTML document has exactly one head element", async () => {
