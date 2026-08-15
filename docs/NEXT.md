@@ -16,7 +16,7 @@
    the static export.
 8. Add a static-export check that generated HTML contains no `contenteditable` attributes.
 9. Add a static-export check that `lang` and `xml:lang` on an `html` element agree when both are
-    present.
+   present.
 10. Add a static-export check that no start tag contains duplicate attribute names.
 11. Add a static-export check that generated `audio` and `video` elements do not use `autoplay`.
 12. Add a static-export check that every `details`, if any, begins with a non-empty `summary`.
