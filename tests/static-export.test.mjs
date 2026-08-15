@@ -399,6 +399,19 @@ function assertHtmlDirection(html, sourceFile) {
   }
 }
 
+function assertIframesHaveNonEmptyTitles(html, sourceFile) {
+  const untitledIframes = documentHtmlTags(html)
+    .filter(({ name, isClosing }) => name === "iframe" && !isClosing)
+    .filter(({ tag }) => !attributeValues(tag, "title").some((title) => title.trim()))
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    untitledIframes,
+    [],
+    `${sourceFile} contains iframe elements without a non-empty title: ${untitledIframes.join(", ")}`,
+  );
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1318,6 +1331,40 @@ test("the html direction scanner rejects empty, whitespace-only, and unknown val
     assert.throws(
       () => assertHtmlDirection(html, fixture),
       /<html> dir must be "ltr", "rtl", or "auto" when present/,
+    );
+  }
+});
+
+test("every exported iframe has a non-empty title", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertIframesHaveNonEmptyTitles(html, htmlFile);
+  }
+});
+
+test("the iframe title scanner accepts absent, titled, and lookalike iframes", async () => {
+  for (const fixture of [
+    "iframe-none.html",
+    "iframe-titled.html",
+    "iframe-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertIframesHaveNonEmptyTitles(html, fixture));
+  }
+});
+
+test("the iframe title scanner rejects missing, empty, and whitespace-only titles", async () => {
+  for (const fixture of [
+    "iframe-title-missing.html",
+    "iframe-title-empty.html",
+    "iframe-title-whitespace.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertIframesHaveNonEmptyTitles(html, fixture),
+      /contains iframe elements without a non-empty title/,
     );
   }
 });

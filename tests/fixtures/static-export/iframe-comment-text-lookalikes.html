@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>The text <iframe> is not an element here</title>
+    <script>
+      const example = '<iframe src="/script"></iframe>';
+    </script>
+    <style>
+      body::before {
+        content: '<iframe src="/style"></iframe>';
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <iframe src="/comment"></iframe> -->
+    <p>The escaped text &lt;iframe src="/text"&gt; is not an element.</p>
+    <iframe-card>This custom element is not an iframe.</iframe-card>
+    <textarea><iframe src="/textarea"></iframe></textarea>
+  </body>
+</html>
