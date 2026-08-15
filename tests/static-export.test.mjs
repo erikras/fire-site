@@ -24,6 +24,7 @@ const knownNonRequestFrameworkReferences = new Set([
   "http://www.w3.org/1999/xlink",
   "http://www.w3.org/2000/svg",
   "http://www.w3.org/XML/1998/namespace",
+  "https://a",
   "https://a/c%20d?a=1&c=3",
   "https://a#б",
   "https://a@b",
