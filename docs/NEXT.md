@@ -2,16 +2,18 @@
 
 ## Unblocked
 
-1. Add a deterministic check that public export paths contain no spaces, control characters, or URL-reserved characters.
-2. Add a static-export check that every generated HTML document has one `rel=canonical` link.
-3. Add a static-export check that generated HTML contains no inline event-handler attributes.
-4. Add a static-export check that generated links and resource URLs never use the `javascript:` scheme.
-5. Require unique non-empty document titles across generated HTML pages.
-6. Add a static-export check that every skip link targets an ID in the same document.
-7. Add a static-export check that `tabindex` values are never positive.
-8. Add a static-export check that generated links and resource URLs never use plain `http://` URLs.
-9. Add a static-export check that `target="_blank"` links include `rel="noopener"`.
-10. Add a static-export check that `role` attributes contain only valid WAI-ARIA role tokens.
+1. Add a static-export check that every generated HTML document has one `rel=canonical` link.
+2. Add a static-export check that generated HTML contains no inline event-handler attributes.
+3. Add a static-export check that generated links and resource URLs never use the `javascript:` scheme.
+4. Require unique non-empty document titles across generated HTML pages.
+5. Add a static-export check that every skip link targets an ID in the same document.
+6. Add a static-export check that `tabindex` values are never positive.
+7. Add a static-export check that generated links and resource URLs never use plain `http://` URLs.
+8. Add a static-export check that `target="_blank"` links include `rel="noopener"`.
+9. Add a static-export check that `role` attributes contain only valid WAI-ARIA role tokens.
+10. Add a static-export check that no `id` value starts with a digit or contains whitespace.
+11. Add a static-export check that every HTML document has exactly one `<html>` and one `<body>`.
+12. Add a static-export check that generated HTML contains no `autofocus` attributes.
 
 ## Waits on Erik
 

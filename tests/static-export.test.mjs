@@ -9,6 +9,9 @@ const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
 const staticExportFixtureDirectory = fileURLToPath(
   new URL("./fixtures/static-export/", import.meta.url),
 );
+const exportPathFixtureDirectory = fileURLToPath(
+  new URL("./fixtures/export-paths/", import.meta.url),
+);
 const canonicalOrigin = "https://storecanary.app";
 const socialTitle = "The quiet morning check for a busy WooCommerce store.";
 const socialDescription =
@@ -76,6 +79,18 @@ async function inventory(directory, relativeDirectory = "") {
   }
 
   return files.sort();
+}
+
+function assertSafeExportPaths(relativePaths, source = "out/") {
+  const unsafePaths = relativePaths.filter(
+    (relativePath) => !/^[A-Za-z0-9._~/-]+$/.test(relativePath),
+  );
+
+  assert.deepEqual(
+    unsafePaths,
+    [],
+    `${source} contains paths with characters that are unsafe in public URLs: ${unsafePaths.join(", ")}`,
+  );
 }
 
 function attributeReferences(contents) {
@@ -355,6 +370,29 @@ test("the static export contains only the landing page and framework fallbacks",
   const htmlFiles = files.filter((file) => file.endsWith(".html"));
 
   assert.deepEqual(htmlFiles, expectedHtmlFiles);
+});
+
+test("every public export path contains only URL-safe characters", async () => {
+  const files = await inventory(exportDirectory);
+
+  assertSafeExportPaths(files);
+});
+
+test("the public export path scanner rejects unsafe relative paths", async () => {
+  const validPaths = JSON.parse(
+    await readFile(path.join(exportPathFixtureDirectory, "valid.json"), "utf8"),
+  );
+  assert.doesNotThrow(() => assertSafeExportPaths(validPaths, "valid fixture"));
+
+  for (const fixture of ["space.json", "question-mark.json", "control-character.json"]) {
+    const invalidPaths = JSON.parse(
+      await readFile(path.join(exportPathFixtureDirectory, fixture), "utf8"),
+    );
+    assert.throws(
+      () => assertSafeExportPaths(invalidPaths, fixture),
+      /contains paths with characters that are unsafe in public URLs/,
+    );
+  }
 });
 
 test("every exported HTML document has unique, non-empty IDs", async () => {
