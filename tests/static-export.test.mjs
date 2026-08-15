@@ -1868,10 +1868,7 @@ test("the repeated-landmark scanner accepts single, distinctly named, and lookal
 
 test("the repeated-landmark scanner rejects empty and duplicate accessible names", async () => {
   for (const [fixture, expectedError] of [
-    [
-      "landmark-two-navs-unnamed.html",
-      /navigation landmarks include an empty accessible name/,
-    ],
+    ["landmark-two-navs-unnamed.html", /navigation landmarks include an empty accessible name/],
     [
       "landmark-two-asides-same-name.html",
       /complementary landmarks repeat accessible name "Related"/,
