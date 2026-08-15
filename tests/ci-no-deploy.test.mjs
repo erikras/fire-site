@@ -165,9 +165,7 @@ function analyzeWorkflow(source, filename) {
     }
 
     for (const permissions of jobEntries.filter((entry) => entry.key === "permissions")) {
-      errors.push(
-        ...validatePermissions(lines, permissions, `${filename} job "${job.key}"`),
-      );
+      errors.push(...validatePermissions(lines, permissions, `${filename} job "${job.key}"`));
     }
 
     for (let index = job.index + 1; index < jobEnd; index += 1) {
@@ -179,9 +177,7 @@ function analyzeWorkflow(source, filename) {
         );
       }
 
-      const command = line.content.match(
-        /^(?:-\s*)?(?:run|command|commands|script|args):\s*(.*)$/,
-      );
+      const command = line.content.match(/^(?:-\s*)?(?:run|command|commands|script|args):\s*(.*)$/);
       if (command && deployCommand(commandValue(lines, index, command[1]))) {
         errors.push(
           `${filename} job "${job.key}" contains a deploy/publish command at line ${line.line}`,
