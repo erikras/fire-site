@@ -81,6 +81,32 @@ function attributeReferences(contents) {
   }));
 }
 
+function idAttributeValues(html) {
+  const ids = [];
+  const attributePattern =
+    /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+
+  for (const [tag] of html.matchAll(/<[A-Za-z][^<>]*>/g)) {
+    for (const match of tag.matchAll(attributePattern)) {
+      if (match[1].toLowerCase() === "id") {
+        ids.push(match[2] ?? match[3] ?? match[4] ?? "");
+      }
+    }
+  }
+
+  return ids;
+}
+
+function assertUniqueNonEmptyIds(html, sourceFile) {
+  const seenIds = new Set();
+
+  for (const id of idAttributeValues(html)) {
+    assert.notEqual(id, "", `${sourceFile} contains an empty id attribute`);
+    assert.equal(seenIds.has(id), false, `${sourceFile} contains duplicate id "${id}"`);
+    seenIds.add(id);
+  }
+}
+
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
@@ -242,6 +268,30 @@ test("the static export contains only the landing page and framework fallbacks",
   const htmlFiles = files.filter((file) => file.endsWith(".html"));
 
   assert.deepEqual(htmlFiles, expectedHtmlFiles);
+});
+
+test("every exported HTML document has unique, non-empty IDs", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertUniqueNonEmptyIds(html, htmlFile);
+  }
+});
+
+test("the HTML ID scanner rejects duplicate and empty IDs", () => {
+  assert.throws(
+    () =>
+      assertUniqueNonEmptyIds(
+        `<main id="content"><section class="id='ignored'" ID="content">`,
+        "fixture.html",
+      ),
+    /fixture\.html contains duplicate id "content"/,
+  );
+  assert.throws(
+    () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
+    /fixture\.html contains an empty id attribute/,
+  );
 });
 
 test("the public export surface contains only approved files", async () => {
