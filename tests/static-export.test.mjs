@@ -655,6 +655,27 @@ function assertNoAutofocusAttributes(html, sourceFile) {
   }
 }
 
+function assertNoAccesskeyAttributes(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const accesskeyAttributes = [...dom.window.document.querySelectorAll("[accesskey]")].map(
+      (element) =>
+        `"accesskey" on <${element.localName}>: ${JSON.stringify(
+          element.getAttribute("accesskey"),
+        )}`,
+    );
+
+    assert.deepEqual(
+      accesskeyAttributes,
+      [],
+      `${sourceFile} contains accesskey attributes: ${accesskeyAttributes.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoJavascriptUrls(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1511,6 +1532,31 @@ test("the autofocus scanner rejects boolean and valued attributes", async () => 
   for (const fixture of ["no-autofocus.html", "autofocus-lookalikes.html"]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertNoAutofocusAttributes(html, fixture));
+  }
+});
+
+test("every exported HTML document contains no accesskey attributes", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoAccesskeyAttributes(html, htmlFile);
+  }
+});
+
+test("the accesskey scanner rejects boolean, empty, and valued attributes", async () => {
+  for (const [fixture, expectedError] of [
+    ["accesskey-boolean.html", /"accesskey" on <button>: ""/],
+    ["accesskey-empty.html", /"accesskey" on <a>: ""/],
+    ["accesskey-valued.html", /"accesskey" on <input>: "s"/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoAccesskeyAttributes(html, fixture), expectedError);
+  }
+
+  for (const fixture of ["no-accesskey.html", "accesskey-lookalikes.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoAccesskeyAttributes(html, fixture));
   }
 });
 
