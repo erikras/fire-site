@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <title>The text <h1> is not an element here</title>
+    <script>
+      const example = "<h1>not a heading</h1>";
+    </script>
+    <style>
+      body::before {
+        content: "<h1>not a heading</h1>";
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The start tag <h1> in this comment is not an element. -->
+    <p>The text &lt;h1&gt; is escaped.</p>
+    <h10>This tag does not have an h1 tag-name boundary.</h10>
+    <h1-card>This custom element is not an h1.</h1-card>
+    <div role="heading" aria-level="1">An ARIA heading is not an h1.</div>
+    <H1 class="page-title">The one real h1 element</H1>
+    <textarea><h1>This is raw text, not a heading.</h1></textarea>
+  </body>
+</html>
