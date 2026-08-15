@@ -74,6 +74,7 @@ const urlBearingAttributeNames = new Set([
   "srcset",
   "xlink:href",
 ]);
+const resourceSourceAttributeNames = new Set(["poster", "src", "srcset"]);
 // Concrete roles defined by WAI-ARIA 1.2. Abstract roles are intentionally excluded.
 const validAriaRoleTokens = new Set([
   "alert",
@@ -763,6 +764,36 @@ function assertNoDataLinkUrls(html, sourceFile) {
       dataUrls,
       [],
       `${sourceFile} contains data: link URLs: ${dataUrls.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
+function assertNoDataResourceUrls(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const dataUrls = [...dom.window.document.querySelectorAll("*")].flatMap((element) =>
+      element
+        .getAttributeNames()
+        .filter((attributeName) => resourceSourceAttributeNames.has(attributeName.toLowerCase()))
+        .filter((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return attributeName.toLowerCase() === "srcset"
+            ? /(?:^|,)\s*data:/i.test(value)
+            : /^\s*data:/i.test(value);
+        })
+        .map((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return `"${attributeName}" on <${element.localName}>: "${value}"`;
+        }),
+    );
+
+    assert.deepEqual(
+      dataUrls,
+      [],
+      `${sourceFile} contains data: resource source URLs: ${dataUrls.join(", ")}`,
     );
   } finally {
     dom.window.close();
@@ -1818,6 +1849,39 @@ test("the link URL-scheme scanner rejects data: hrefs and accepts safe URL forms
     "utf8",
   );
   assert.doesNotThrow(() => assertNoDataLinkUrls(safeUrls, "no-data-link-urls.html"));
+});
+
+test("every exported HTML document contains no data: resource source URLs", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoDataResourceUrls(html, htmlFile);
+  }
+});
+
+test("the resource URL-scheme scanner rejects data: sources and accepts safe URL forms", async () => {
+  for (const [fixture, expectedError] of [
+    ["data-resource-src.html", /contains data: resource source URLs: "src" on <img>/],
+    [
+      "data-resource-srcset-candidate.html",
+      /contains data: resource source URLs: "srcset" on <source>/,
+    ],
+    [
+      "data-resource-poster-leading-whitespace.html",
+      /contains data: resource source URLs: "poster" on <video>/,
+    ],
+    ["data-resource-src-uppercase.html", /contains data: resource source URLs: "src" on <script>/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoDataResourceUrls(html, fixture), expectedError);
+  }
+
+  const safeUrls = await readFile(
+    path.join(staticExportFixtureDirectory, "no-data-resource-urls.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertNoDataResourceUrls(safeUrls, "no-data-resource-urls.html"));
 });
 
 test("every exported HTML document contains no plain http:// URLs", async () => {
