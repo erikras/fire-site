@@ -18,6 +18,7 @@
     "test:wrangler": "node --test tests/wrangler-integration.test.mjs",
     "test:workflows": "bash scripts/lint-workflows.sh",
     "test:ci-guard": "node --test tests/ci-no-deploy.test.mjs",
+    "test:path-case": "node --test tests/path-case-collisions.test.mjs",
     "test:conflicts": "node --test tests/merge-conflict-markers.test.mjs",
     "test:secrets": "node --test tests/secret-patterns.test.mjs",
     "test:licenses": "node --test tests/license-inventory.test.mjs",
@@ -25,7 +26,7 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "quality": "yarn test:ci-guard && yarn test:conflicts && yarn test:secrets && yarn test:licenses && yarn lint && yarn test:docs && yarn typecheck && yarn test && yarn test:e2e && yarn format:check && yarn build && yarn test:export && yarn test:asset-size && yarn test:wrangler && yarn audit --level high",
+    "quality": "yarn test:ci-guard && yarn test:path-case && yarn test:conflicts && yarn test:secrets && yarn test:licenses && yarn lint && yarn test:docs && yarn typecheck && yarn test && yarn test:e2e && yarn format:check && yarn build && yarn test:export && yarn test:asset-size && yarn test:wrangler && yarn audit --level high",
     "deploy:cloudflare": "yarn build && npx wrangler@4.120.1 deploy"
   },
   "dependencies": {
