@@ -16,6 +16,38 @@ const socialImage = {
   height: 630,
   alt: "Store Canary social card: The quiet morning check for a busy WooCommerce store.",
 };
+// Next's generated runtime carries documentation, namespace, license, and URL-parser fixtures.
+// These exact strings are data, not browser request targets; any new absolute URL still fails.
+const knownNonRequestFrameworkReferences = new Set([
+  "http://n",
+  "http://www.w3.org/1998/Math/MathML",
+  "http://www.w3.org/1999/xlink",
+  "http://www.w3.org/2000/svg",
+  "http://www.w3.org/XML/1998/namespace",
+  "https://a",
+  "https://a/c%20d?a=1&c=3",
+  "https://a#б",
+  "https://a@b",
+  "https://github.com/zloirock/core-js",
+  "https://github.com/zloirock/core-js/blob/v3.38.1/LICENSE",
+  "https://nextjs.org/docs/app/api-reference/functions/use-search-params#updating-searchparams",
+  "https://nextjs.org/docs/messages/404-get-initial-props",
+  "https://nextjs.org/docs/messages/failed-to-find-server-action",
+  "https://nextjs.org/docs/messages/gssp-component-member",
+  "https://nextjs.org/docs/messages/gssp-export",
+  "https://nextjs.org/docs/messages/instant-link-prefetch-partial",
+  "https://nextjs.org/docs/messages/instant-unrendered-segment",
+  "https://nextjs.org/docs/messages/non-standard-node-env",
+  "https://nextjs.org/docs/messages/public-next-folder-conflict",
+  "https://nextjs.org/docs/messages/ssg-fallback-true-export",
+  "https://react.dev/errors/",
+  "https://x",
+  "https://тест",
+]);
+const analyticsHostPattern =
+  /\b(?:api\.segment\.io|cdn\.segment\.com|cloudflareinsights\.com|datadoghq\.com|google-analytics\.com|googletagmanager\.com|hotjar\.com|mixpanel\.com|newrelic\.com|plausible\.io|sentry\.io|stats\.g\.doubleclick\.net)\b/gi;
+const literalRequestSinkPattern =
+  /(?:\bfetch|\bimportScripts|\bsendBeacon|\bEventSource|\bWebSocket|\bimport|\bnew\s+URL)\s*\(\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/gi;
 const starterAssetNames = new Set([
   "file.svg",
   "globe.svg",
@@ -52,6 +84,18 @@ function attributeReferences(contents) {
 function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
+  );
+}
+
+function absoluteHttpReferences(contents) {
+  return [...contents.matchAll(/\bhttps?:[\\/]{2,4}[^\s"'<>`)\\]+/gi)].map((match) =>
+    match[0].replaceAll("\\", ""),
+  );
+}
+
+function literalRequestSinkReferences(contents) {
+  return [...contents.matchAll(literalRequestSinkPattern)].map(
+    (match) => match[1] ?? match[2] ?? match[3],
   );
 }
 
@@ -120,6 +164,58 @@ function resolveExportReference(reference, sourceFile, exportedFiles, allowedMai
   );
 
   return { targetFile, url };
+}
+
+function assertAllowedBrowserRequestTarget(reference, sourceFile, allowedMailto) {
+  let url;
+
+  try {
+    url = new URL(reference, `${canonicalOrigin}/`);
+  } catch (error) {
+    assert.fail(
+      `${sourceFile} contains an invalid browser request target "${reference}": ${error.message}`,
+    );
+  }
+
+  if (url.protocol === "mailto:") {
+    assert.equal(
+      reference,
+      allowedMailto,
+      `${sourceFile} contains mailto outside the access CTA: ${reference}`,
+    );
+    return;
+  }
+
+  assert.ok(
+    url.protocol === "http:" || url.protocol === "https:",
+    `${sourceFile} contains an unsupported browser request target: ${reference}`,
+  );
+  assert.equal(
+    url.origin,
+    canonicalOrigin,
+    `${sourceFile} contains an unexpected external browser request target: ${reference}`,
+  );
+}
+
+function assertNoUnexpectedBrowserRequestTargets(contents, sourceFile, allowedMailto) {
+  const analyticsHosts = [...contents.matchAll(analyticsHostPattern)].map((match) => match[0]);
+  assert.deepEqual(
+    analyticsHosts,
+    [],
+    `${sourceFile} embeds known analytics or beacon hosts: ${analyticsHosts.join(", ")}`,
+  );
+
+  const references = [
+    ...absoluteHttpReferences(contents),
+    ...literalRequestSinkReferences(contents),
+  ].filter(
+    (reference) =>
+      !(sourceFile.endsWith(".js") && knownNonRequestFrameworkReferences.has(reference)),
+  );
+
+  for (const reference of new Set(references)) {
+    assertAllowedBrowserRequestTarget(reference, sourceFile, allowedMailto);
+  }
 }
 
 const expectedHtmlFiles = ["404.html", "_not-found.html", "index.html"];
@@ -265,6 +361,60 @@ test("exported CSS url() resources resolve within the static export", async () =
     for (const reference of cssReferences(css)) {
       resolveExportReference(reference, cssFile, exportedFiles);
     }
+  }
+});
+
+test("exported browser text contains no unexpected third-party request targets", async () => {
+  const files = await inventory(exportDirectory);
+  const textFiles = files.filter((file) => /\.(?:css|html|js)$/.test(file));
+  const landingHtml = await readFile(path.join(exportDirectory, "index.html"), "utf8");
+  const accessAnchors = [...landingHtml.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(
+    (match) => match[2].replace(/<[^>]+>/g, "").trim() === "Email the access request",
+  );
+  const accessHref = accessAnchors[0]?.[1].match(/\bhref=["']([^"']+)["']/i)?.[1];
+
+  assert.match(accessHref ?? "", /^mailto:/);
+
+  // Playwright covers computed runtime requests; this no-network check complements it at export time.
+  for (const textFile of textFiles) {
+    const contents = await readFile(path.join(exportDirectory, textFile), "utf8");
+    assertNoUnexpectedBrowserRequestTargets(contents, textFile, accessHref);
+
+    if (textFile.endsWith(".html")) {
+      for (const { value } of attributeReferences(contents)) {
+        assertAllowedBrowserRequestTarget(value, textFile, accessHref);
+      }
+    }
+
+    if (textFile.endsWith(".css")) {
+      for (const reference of cssReferences(contents)) {
+        assertAllowedBrowserRequestTarget(reference, textFile, accessHref);
+      }
+    }
+  }
+});
+
+test("the export request-target scanner rejects third-party hosts without network access", () => {
+  for (const [sourceFile, contents] of [
+    ["fixture.html", '<link rel="preconnect" href="https://tracker.example">'],
+    ["fixture.css", "body { background: url(https://tracker.example/pixel.gif); }"],
+    ["fixture.js", 'fetch("https://tracker.example/events")'],
+    ["fixture.js", 'const endpoint = new URL("https://tracker.example/events")'],
+    ["fixture.js", 'const endpoint = "https:\\/\\/tracker.example/events"'],
+  ]) {
+    assert.throws(() => {
+      assertNoUnexpectedBrowserRequestTargets(contents, sourceFile);
+      if (sourceFile.endsWith(".html")) {
+        for (const { value } of attributeReferences(contents)) {
+          assertAllowedBrowserRequestTarget(value, sourceFile);
+        }
+      }
+      if (sourceFile.endsWith(".css")) {
+        for (const reference of cssReferences(contents)) {
+          assertAllowedBrowserRequestTarget(reference, sourceFile);
+        }
+      }
+    }, /unexpected external browser request target/);
   }
 });
 
