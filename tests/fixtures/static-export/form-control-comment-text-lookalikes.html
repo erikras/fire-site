@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Form control lookalikes fixture</title>
+    <script>
+      const example = "<input type='text'>";
+    </script>
+    <style>
+      body::before {
+        content: "<select><option>Example</option></select>";
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <textarea></textarea> -->
+    <p>The escaped text &lt;input type="text"&gt; is not a form control.</p>
+    <input-card>This custom element is not an input.</input-card>
+  </body>
+</html>
