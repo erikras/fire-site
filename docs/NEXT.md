@@ -2,7 +2,7 @@
 
 ## Unblocked
 
-1. Add a static-export check that generated HTML contains no `ping` attributes.
+1. Add a static-export check that generated HTML contains no `meta http-equiv="refresh"` redirects.
 2. Add a static-export check that no element retains `aria-invalid="true"`.
 3. Add a static-export check that the document body does not have a `hidden` attribute.
 4. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
@@ -137,6 +137,8 @@
 83. Add a static-export check that `aria-disabled`, when present, uses only `true` or `false`.
 84. Add a static-export check that `aria-multiselectable`, when present, uses only `true` or `false`.
 85. Add a static-export check that `draggable`, when present, uses only `true` or `false`.
+86. Add a static-export check that generated HTML contains no `nonce` attributes.
+87. Add a static-export check that every `iframe`, if any, has a `sandbox` attribute.
 
 ## Waits on Erik
 
