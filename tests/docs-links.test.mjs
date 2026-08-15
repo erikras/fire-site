@@ -6,11 +6,10 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
-const markdownFiles = execFileSync(
-  "git",
-  ["ls-files", "-z", "--", "*.md"],
-  { cwd: repositoryRoot, encoding: "utf8" },
-)
+const markdownFiles = execFileSync("git", ["ls-files", "-z", "--", "*.md"], {
+  cwd: repositoryRoot,
+  encoding: "utf8",
+})
   .split("\0")
   .filter(Boolean);
 
@@ -95,18 +94,13 @@ for (const markdownFile of markdownFiles) {
       const target = resolve(repositoryRoot, dirname(markdownFile), path);
       const targetRelativeToRoot = relative(repositoryRoot, target);
       const escapesRepository =
-        targetRelativeToRoot === ".." ||
-        targetRelativeToRoot.startsWith(`..${sep}`);
+        targetRelativeToRoot === ".." || targetRelativeToRoot.startsWith(`..${sep}`);
 
       if (escapesRepository || !existsSync(target)) {
         brokenLinks.push(`${markdownFile}:${line} -> ${destination}`);
       }
     }
 
-    assert.deepEqual(
-      brokenLinks,
-      [],
-      `Broken in-repo Markdown links:\n${brokenLinks.join("\n")}`,
-    );
+    assert.deepEqual(brokenLinks, [], `Broken in-repo Markdown links:\n${brokenLinks.join("\n")}`);
   });
 }

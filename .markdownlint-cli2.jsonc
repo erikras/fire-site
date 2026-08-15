@@ -1,7 +1,7 @@
 {
   "config": {
     // Prose line wrapping is left to the repository formatter.
-    "MD013": false
+    "MD013": false,
   },
   "globs": ["**/*.md"],
   "ignores": [
@@ -11,16 +11,16 @@
     ".next/**",
     "out/**",
     "playwright-report/**",
-    "test-results/**"
+    "test-results/**",
   ],
   "overrides": [
     {
       // CLAUDE.md is an agent include directive, not a standalone document.
       "filter": ["CLAUDE.md"],
       "config": {
-        "MD041": false
+        "MD041": false,
       },
-      "combine": "merge"
-    }
-  ]
+      "combine": "merge",
+    },
+  ],
 }
