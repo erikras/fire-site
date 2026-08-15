@@ -958,6 +958,32 @@ function assertNoAriaBusyTrue(html, sourceFile) {
   }
 }
 
+function assertNoAriaExpandedTrue(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const expandedElements = [...dom.window.document.querySelectorAll("*")]
+      .filter((element) =>
+        element
+          .getAttributeNames()
+          .some(
+            (attributeName) =>
+              attributeName.toLowerCase() === "aria-expanded" &&
+              element.getAttribute(attributeName)?.trim().toLowerCase() === "true",
+          ),
+      )
+      .map((element) => element.outerHTML);
+
+    assert.deepEqual(
+      expandedElements,
+      [],
+      `${sourceFile} contains elements with aria-expanded="true": ${expandedElements.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoAriaInvalidTrue(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -2410,6 +2436,36 @@ test("the aria-busy scanner rejects true values case-insensitively", async () =>
     assert.throws(
       () => assertNoAriaBusyTrue(html, fixture),
       /contains elements with aria-busy="true"/,
+    );
+  }
+});
+
+test('every exported HTML document contains no aria-expanded="true" attributes', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoAriaExpandedTrue(html, htmlFile);
+  }
+});
+
+test("the aria-expanded scanner accepts omitted, false, and comment or text lookalikes", async () => {
+  for (const fixture of [
+    "aria-expanded-omitted.html",
+    "aria-expanded-false.html",
+    "aria-expanded-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoAriaExpandedTrue(html, fixture));
+  }
+});
+
+test("the aria-expanded scanner rejects true values case-insensitively", async () => {
+  for (const fixture of ["aria-expanded-true.html", "aria-expanded-mixed-case.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertNoAriaExpandedTrue(html, fixture),
+      /contains elements with aria-expanded="true"/,
     );
   }
 });
