@@ -1043,6 +1043,50 @@ function assertAriaIdReferences(html, sourceFile) {
   }
 }
 
+function assertLabelForTargets(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+  const labelableElements = new Set([
+    "button",
+    "input",
+    "meter",
+    "output",
+    "progress",
+    "select",
+    "textarea",
+  ]);
+
+  try {
+    for (const label of document.querySelectorAll("label")) {
+      const forAttribute = label
+        .getAttributeNames()
+        .find((attributeName) => attributeName.toLowerCase() === "for");
+      if (forAttribute === undefined) {
+        continue;
+      }
+
+      const value = label.getAttribute(forAttribute) ?? "";
+      assert.ok(
+        value.trim(),
+        `${sourceFile} contains a label with an empty or whitespace-only for attribute`,
+      );
+
+      const target = document.getElementById(value);
+      assert.ok(target, `${sourceFile} label for="${value}" references missing id "${value}"`);
+
+      const isHiddenInput =
+        target.localName === "input" &&
+        (target.getAttribute("type") ?? "").trim().toLowerCase() === "hidden";
+      assert.ok(
+        labelableElements.has(target.localName) && !isHiddenInput,
+        `${sourceFile} label for="${value}" references non-labelable <${target.localName}>`,
+      );
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertSkipLinkTargets(html, sourceFile) {
   const dom = new JSDOM(html);
   const { document } = dom.window;
@@ -2623,6 +2667,39 @@ test("the ARIA ID-reference scanner rejects invalid token lists", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertAriaIdReferences(noReferences, "no-aria-id-references.html"));
+});
+
+test("every exported label for attribute references a labelable control", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertLabelForTargets(html, htmlFile);
+  }
+});
+
+test("the label-for scanner accepts omitted attributes, valid controls, and lookalikes", async () => {
+  for (const fixture of [
+    "label-for-omitted.html",
+    "label-for-valid-controls.html",
+    "label-for-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertLabelForTargets(html, fixture));
+  }
+});
+
+test("the label-for scanner rejects empty, dangling, and non-labelable targets", async () => {
+  for (const [fixture, expectedError] of [
+    ["label-for-missing-target.html", /label for="missing" references missing id "missing"/],
+    ["label-for-empty.html", /label with an empty or whitespace-only for attribute/],
+    ["label-for-whitespace.html", /label with an empty or whitespace-only for attribute/],
+    ["label-for-non-labelable.html", /label for="description" references non-labelable <div>/],
+    ["label-for-hidden-input.html", /label for="token" references non-labelable <input>/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertLabelForTargets(html, fixture), expectedError);
+  }
 });
 
 test("every exported HTML document has resolvable in-document skip links", async () => {
