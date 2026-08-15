@@ -215,8 +215,8 @@ function attributeValues(tag, attributeName) {
     .map((match) => match[2] ?? match[3] ?? match[4] ?? "");
 }
 
-function documentElementStartTags(html) {
-  const startTags = [];
+function documentHtmlTags(html) {
+  const tags = [];
   const rawTextElements = new Set([
     "iframe",
     "noembed",
@@ -226,6 +226,22 @@ function documentElementStartTags(html) {
     "textarea",
     "title",
     "xmp",
+  ]);
+  const voidElements = new Set([
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
   ]);
   let index = 0;
 
@@ -261,18 +277,27 @@ function documentElementStartTags(html) {
       continue;
     }
 
-    const startTag = html.slice(openingBracket).match(/^<([A-Za-z][A-Za-z0-9:-]*)/);
-    if (!startTag) {
+    const tagMatch = html.slice(openingBracket).match(/^<(\/?)([A-Za-z][A-Za-z0-9:-]*)/);
+    if (!tagMatch) {
       index = openingBracket + 1;
       continue;
     }
 
-    const name = startTag[1].toLowerCase();
-    const end = tagEnd(openingBracket + startTag[0].length);
+    const isClosing = tagMatch[1] === "/";
+    const name = tagMatch[2].toLowerCase();
+    const end = tagEnd(openingBracket + tagMatch[0].length);
+    const tag = html.slice(openingBracket, end + 1);
     index = end + 1;
 
-    if (name === "html" || name === "head" || name === "body" || name === "h1") {
-      startTags.push({ name, tag: html.slice(openingBracket, end + 1) });
+    tags.push({
+      name,
+      tag,
+      isClosing,
+      isVoid: !isClosing && (voidElements.has(name) || /\/\s*>$/.test(tag)),
+    });
+
+    if (isClosing) {
+      continue;
     }
 
     if (name === "plaintext") {
@@ -283,11 +308,30 @@ function documentElementStartTags(html) {
       const closingTag = new RegExp(`</${name}(?=[\\s/>])`, "gi");
       closingTag.lastIndex = index;
       const match = closingTag.exec(html);
-      index = match?.index ?? html.length;
+      if (!match) {
+        index = html.length;
+        continue;
+      }
+
+      const closingEnd = tagEnd(match.index + match[0].length);
+      tags.push({
+        name,
+        tag: html.slice(match.index, closingEnd + 1),
+        isClosing: true,
+        isVoid: false,
+      });
+      index = closingEnd + 1;
     }
   }
 
-  return startTags;
+  return tags;
+}
+
+function documentElementStartTags(html) {
+  return documentHtmlTags(html).filter(
+    ({ name, isClosing }) =>
+      !isClosing && (name === "html" || name === "head" || name === "body" || name === "h1"),
+  );
 }
 
 function documentElementStartTagCounts(html) {
@@ -362,6 +406,75 @@ function assertValidTabIndexValues(html, sourceFile) {
   } finally {
     dom.window.close();
   }
+}
+
+function hasAttribute(tag, attributeName) {
+  return attributeValues(tag, attributeName).length > 0;
+}
+
+function isFocusableStartTag(name, tag) {
+  const isDisabled = hasAttribute(tag, "disabled");
+
+  if (name === "a") {
+    return hasAttribute(tag, "href");
+  }
+  if (name === "button") {
+    return !isDisabled;
+  }
+  if (name === "input") {
+    const type = attributeValues(tag, "type")[0]?.trim().toLowerCase();
+    return type !== "hidden" && !isDisabled;
+  }
+  if (name === "select" || name === "textarea") {
+    return !isDisabled;
+  }
+  if (name === "iframe" || name === "summary") {
+    return true;
+  }
+  if (name === "audio" || name === "video") {
+    return hasAttribute(tag, "controls");
+  }
+  if (hasAttribute(tag, "contenteditable")) {
+    return true;
+  }
+
+  return attributeValues(tag, "tabindex").some((value) => value.trim() !== "-1");
+}
+
+function assertAriaHiddenContainsNoFocusableElements(html, sourceFile) {
+  const openElements = [];
+  const focusableElements = [];
+  let hiddenDepth = 0;
+
+  for (const { name, tag, isClosing, isVoid } of documentHtmlTags(html)) {
+    if (isClosing) {
+      const openingIndex = openElements.findLastIndex((element) => element.name === name);
+      if (openingIndex !== -1) {
+        for (const element of openElements.splice(openingIndex)) {
+          hiddenDepth -= Number(element.isAriaHidden);
+        }
+      }
+      continue;
+    }
+
+    const isAriaHidden = attributeValues(tag, "aria-hidden").some(
+      (value) => value.trim() === "true",
+    );
+    if ((hiddenDepth > 0 || isAriaHidden) && isFocusableStartTag(name, tag)) {
+      focusableElements.push(`<${name}>`);
+    }
+
+    if (!isVoid) {
+      openElements.push({ name, isAriaHidden });
+      hiddenDepth += Number(isAriaHidden);
+    }
+  }
+
+  assert.deepEqual(
+    focusableElements,
+    [],
+    `${sourceFile} contains focusable elements inside aria-hidden="true" subtrees: ${focusableElements.join(", ")}`,
+  );
 }
 
 function assertUniqueNonEmptyIds(html, sourceFile) {
@@ -1224,6 +1337,68 @@ test("the tabindex scanner rejects positive and malformed values", async () => {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertValidTabIndexValues(html, fixture));
   }
+});
+
+test('every exported HTML aria-hidden="true" subtree contains no focusable elements', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertAriaHiddenContainsNoFocusableElements(html, htmlFile);
+  }
+});
+
+test("the aria-hidden focus scanner accepts decorative, disabled, and lookalike content", async () => {
+  for (const fixture of [
+    "aria-hidden-decorative-valid.html",
+    "aria-hidden-disabled-controls-valid.html",
+    "aria-hidden-lookalikes-valid.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertAriaHiddenContainsNoFocusableElements(html, fixture));
+  }
+});
+
+test("the aria-hidden focus scanner rejects hidden links, tabindex controls, and nesting", async () => {
+  for (const [fixture, expectedElement] of [
+    ["aria-hidden-link.html", "<a>"],
+    ["aria-hidden-tabindex.html", "<div>"],
+    ["aria-hidden-nested.html", "<button>"],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertAriaHiddenContainsNoFocusableElements(html, fixture),
+      new RegExp(`focusable elements inside aria-hidden="true" subtrees: ${expectedElement}`),
+    );
+  }
+});
+
+test("the aria-hidden focus scanner recognizes every supported focusable element", async () => {
+  const fixture = "aria-hidden-focusable-controls.html";
+  const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+
+  assert.throws(
+    () => assertAriaHiddenContainsNoFocusableElements(html, fixture),
+    (error) => {
+      assert.match(error.message, /focusable elements inside aria-hidden="true" subtrees/);
+      for (const element of [
+        "<button>",
+        "<input>",
+        "<select>",
+        "<textarea>",
+        "<iframe>",
+        "<audio>",
+        "<video>",
+        "<summary>",
+        "<span>",
+        "<div>",
+        "<a>",
+      ]) {
+        assert.match(error.message, new RegExp(element));
+      }
+      return true;
+    },
+  );
 });
 
 test("every exported HTML document has resolvable ARIA ID references", async () => {
