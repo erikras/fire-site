@@ -1423,6 +1423,28 @@ function assertExactlyOneNonEmptyMetaDescription(html, sourceFile) {
   }
 }
 
+function assertColorMetadataHasNonEmptyContent(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const colorMetadataNames = new Set(["theme-color", "color-scheme"]);
+
+  try {
+    const emptyColorMetadata = [...dom.window.document.querySelectorAll("meta")]
+      .filter((meta) =>
+        colorMetadataNames.has(meta.getAttribute("name")?.trim().toLowerCase() ?? ""),
+      )
+      .filter((meta) => !(meta.getAttribute("content") ?? "").trim())
+      .map((meta) => meta.outerHTML);
+
+    assert.deepEqual(
+      emptyColorMetadata,
+      [],
+      `${sourceFile} theme-color and color-scheme metadata must have non-empty content when present: ${emptyColorMetadata.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoMetaRefresh(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -3017,6 +3039,44 @@ test("the meta-description scanner rejects missing, empty, whitespace-only, and 
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(() => assertExactlyOneNonEmptyMetaDescription(html, fixture), expectedError);
+  }
+});
+
+test("every exported HTML document has non-empty color metadata when present", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertColorMetadataHasNonEmptyContent(html, htmlFile);
+  }
+});
+
+test("the color metadata scanner accepts omitted, non-empty, and lookalike metadata", async () => {
+  for (const fixture of [
+    "color-metadata-omitted.html",
+    "color-metadata-valid.html",
+    "color-metadata-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertColorMetadataHasNonEmptyContent(html, fixture));
+  }
+});
+
+test("the color metadata scanner rejects empty, whitespace-only, and missing content", async () => {
+  for (const fixture of [
+    "theme-color-empty.html",
+    "theme-color-whitespace.html",
+    "theme-color-missing-content.html",
+    "color-scheme-empty.html",
+    "color-scheme-whitespace.html",
+    "color-scheme-missing-content.html",
+    "color-metadata-mixed-case-empty.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertColorMetadataHasNonEmptyContent(html, fixture),
+      /theme-color and color-scheme metadata must have non-empty content when present/,
+    );
   }
 });
 
