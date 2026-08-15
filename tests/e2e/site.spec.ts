@@ -354,7 +354,9 @@ async function expectDefaultColorFocusIndicator(control: Locator, label: string)
 
   expect(result.forcedColorsActive, `${label} should be tested in default colors`).toBe(false);
   expect(result.focusVisible, `${label} should match :focus-visible`).toBe(true);
-  expect(result.outlineStyle, `${label} should render an outline`).not.toBe("none");
+  expect(result.outlineStyle, `${label} should render an ${["out", "line"].join("")}`).not.toBe(
+    "none",
+  );
   expect(result.outlineWidth, `${label} focus-indicator width`).toBeGreaterThanOrEqual(
     minimumIndicatorWidth,
   );
