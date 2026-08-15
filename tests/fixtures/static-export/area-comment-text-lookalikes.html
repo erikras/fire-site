@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>The text &lt;area&gt; is not an element here</title>
+    <script>
+      const example = '<area href="/script">';
+    </script>
+    <style>
+      body::before {
+        content: '<area href="/style">';
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <area href="/comment"> -->
+    <p>The escaped text &lt;area href="/text"&gt; is not an element.</p>
+    <area-card>This custom element is not an image-map area.</area-card>
+    <textarea><area href="/textarea"></textarea>
+  </body>
+</html>

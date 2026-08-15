@@ -2,7 +2,8 @@
 
 ## Unblocked
 
-1. Add a static-export check that every `area`, if any, has a non-empty `alt` attribute.
+1. Add a static-export check that generated HTML contains no inline event-handler attributes such as
+   `onclick`.
 2. Add a static-export check that `download` is not used on cross-origin links.
 3. Add a static-export check that generated HTML contains no `ping` attributes.
 4. Add a static-export check that no element retains `aria-invalid="true"`.
@@ -133,6 +134,10 @@
     `href` and language tag.
 82. Add a static-export check that generated `textarea` elements do not use ignored `value`
     attributes.
+83. Add a static-export check that `aria-roledescription`, when present, contains non-whitespace
+    text.
+84. Add a static-export check that `meta name="robots"`, when present, contains only recognized,
+    non-contradictory tokens.
 
 ## Waits on Erik
 
