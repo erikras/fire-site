@@ -83,8 +83,7 @@ function attributeReferences(contents) {
 
 function idAttributeValues(html) {
   const ids = [];
-  const attributePattern =
-    /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  const attributePattern = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 
   for (const [tag] of html.matchAll(/<[A-Za-z][^<>]*>/g)) {
     for (const match of tag.matchAll(attributePattern)) {
