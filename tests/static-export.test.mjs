@@ -6,6 +6,16 @@ import { fileURLToPath } from "node:url";
 
 const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
 const canonicalOrigin = "https://storecanary.app";
+const socialTitle = "The quiet morning check for a busy WooCommerce store.";
+const socialDescription =
+  "WooCommerce Daily Ops finds operational exceptions and turns them into one concise, actionable daily digest.";
+const socialImage = {
+  path: "social-share.png",
+  url: `${canonicalOrigin}/social-share.png`,
+  width: 1200,
+  height: 630,
+  alt: "Store Canary social card: The quiet morning check for a busy WooCommerce store.",
+};
 const starterAssetNames = new Set([
   "file.svg",
   "globe.svg",
@@ -43,6 +53,20 @@ function cssReferences(contents) {
   return [...contents.matchAll(/\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'")][^)]*))\s*\)/gi)].map(
     (match) => (match[1] ?? match[2] ?? match[3]).trim(),
   );
+}
+
+function metaContents(html, identifyingAttribute, identifyingValue) {
+  return [...html.matchAll(/<meta\b[^>]*>/gi)]
+    .map(([tag]) =>
+      Object.fromEntries(
+        [...tag.matchAll(/\b([:\w-]+)=["']([^"']*)["']/g)].map((match) => [
+          match[1].toLowerCase(),
+          match[2],
+        ]),
+      ),
+    )
+    .filter((attributes) => attributes[identifyingAttribute] === identifyingValue)
+    .map((attributes) => attributes.content);
 }
 
 function resolveExportReference(reference, sourceFile, exportedFiles, allowedMailto) {
@@ -114,6 +138,7 @@ const expectedPublicFiles = [
   "index.txt",
   "robots.txt",
   "sitemap.xml",
+  "social-share.png",
 ].sort();
 
 test("the static export contains only the landing page and framework fallbacks", async () => {
@@ -198,6 +223,34 @@ test("landing links and resources resolve entirely within the static export", as
 
   const starterAssets = files.filter((file) => starterAssetNames.has(path.posix.basename(file)));
   assert.deepEqual(starterAssets, [], "leftover Next.js starter assets must not enter out/");
+});
+
+test("social metadata and its local image stay in sync", async () => {
+  const files = await inventory(exportDirectory);
+  const exportedFiles = new Set(files);
+  const html = await readFile(path.join(exportDirectory, "index.html"), "utf8");
+  const propertyContents = (property) => metaContents(html, "property", property);
+  const namedContents = (name) => metaContents(html, "name", name);
+
+  assert.deepEqual(propertyContents("og:title"), [socialTitle]);
+  assert.deepEqual(propertyContents("og:description"), [socialDescription]);
+  assert.deepEqual(propertyContents("og:image"), [socialImage.url]);
+  assert.deepEqual(propertyContents("og:image:width"), [String(socialImage.width)]);
+  assert.deepEqual(propertyContents("og:image:height"), [String(socialImage.height)]);
+  assert.deepEqual(propertyContents("og:image:alt"), [socialImage.alt]);
+
+  assert.deepEqual(namedContents("twitter:card"), ["summary_large_image"]);
+  assert.deepEqual(namedContents("twitter:title"), [socialTitle]);
+  assert.deepEqual(namedContents("twitter:description"), [socialDescription]);
+  assert.deepEqual(namedContents("twitter:image"), [socialImage.url]);
+  assert.deepEqual(namedContents("twitter:image:alt"), [socialImage.alt]);
+
+  resolveExportReference(socialImage.url, "index.html", exportedFiles);
+
+  const image = await readFile(path.join(exportDirectory, socialImage.path));
+  assert.deepEqual([...image.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(image.readUInt32BE(16), socialImage.width);
+  assert.equal(image.readUInt32BE(20), socialImage.height);
 });
 
 test("exported CSS url() resources resolve within the static export", async () => {

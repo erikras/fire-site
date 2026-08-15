@@ -34,12 +34,15 @@ describe("product catalog", () => {
       name: dailyOps.name,
       eyebrow: dailyOps.eyebrow,
       promise: dailyOps.promise,
+      offer: dailyOps.offer,
       audience: dailyOps.audience,
       proof: dailyOps.proof,
     }).toEqual({
       name: "WooCommerce Daily Ops",
       eyebrow: "Know what needs attention before your customers tell you",
       promise: "The quiet morning check for a busy WooCommerce store.",
+      offer:
+        "WooCommerce Daily Ops finds operational exceptions and turns them into one concise, actionable daily digest.",
       audience:
         "Store owners and WooCommerce operators who want fewer surprises and less dashboard patrol.",
       proof: [

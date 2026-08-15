@@ -27,6 +27,11 @@ const budgets = {
     matches: (file) => /\.(?:woff2?|ttf|otf)$/i.test(file),
     perFileBytes: 42_000,
   },
+  image: {
+    aggregateBytes: 20_000,
+    matches: (file) => /\.(?:jpe?g|png|gif|webp)$/i.test(file),
+    perFileBytes: 20_000,
+  },
 };
 
 async function inventory(directory, relativeDirectory = "") {

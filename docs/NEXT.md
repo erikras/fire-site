@@ -2,9 +2,8 @@
 
 ## Unblocked
 
-1. Add a local social-share image and matching Open Graph and Twitter card metadata, including image dimensions and alt text.
-2. Add a print stylesheet and print-media browser check so the one-page explanation and contact details remain useful when printed or saved as PDF.
-3. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
+1. Add a print stylesheet and print-media browser check so the one-page explanation and contact details remain useful when printed or saved as PDF.
+2. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
 
 ## Waits on Erik
 
