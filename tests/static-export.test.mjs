@@ -706,6 +706,28 @@ function assertDocumentTitleAndCharset(html, sourceFile) {
   assert.ok(hasCharset, `${sourceFile} must contain a non-empty character-set declaration`);
 }
 
+function assertExactlyOneNonEmptyMetaDescription(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const descriptions = [...dom.window.document.querySelectorAll("meta")].filter(
+      (meta) => meta.getAttribute("name")?.toLowerCase() === "description",
+    );
+
+    assert.equal(
+      descriptions.length,
+      1,
+      `${sourceFile} must contain exactly one meta description`,
+    );
+    assert.ok(
+      descriptions[0].getAttribute("content")?.trim(),
+      `${sourceFile} meta description content must be non-empty`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertCanonicalLink(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1511,6 +1533,37 @@ test("the title and character-set scanner rejects invalid document metadata", as
       "valid-content-type.html",
     ),
   );
+});
+
+test("every exported HTML document has exactly one meta description with non-empty content", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertExactlyOneNonEmptyMetaDescription(html, htmlFile);
+  }
+});
+
+test("the meta-description scanner accepts exactly one non-empty description", async () => {
+  const html = await readFile(
+    path.join(staticExportFixtureDirectory, "meta-description-valid.html"),
+    "utf8",
+  );
+
+  assert.doesNotThrow(() => assertExactlyOneNonEmptyMetaDescription(html, "valid fixture"));
+});
+
+test("the meta-description scanner rejects missing, empty, whitespace-only, and multiple values", async () => {
+  for (const [fixture, expectedError] of [
+    ["meta-description-missing.html", /must contain exactly one meta description/],
+    ["meta-description-empty.html", /meta description content must be non-empty/],
+    ["meta-description-whitespace.html", /meta description content must be non-empty/],
+    ["meta-description-multiple.html", /must contain exactly one meta description/],
+    ["meta-description-lookalikes.html", /must contain exactly one meta description/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertExactlyOneNonEmptyMetaDescription(html, fixture), expectedError);
+  }
 });
 
 test("every exported HTML document has one canonical Store Canary URL", async () => {
