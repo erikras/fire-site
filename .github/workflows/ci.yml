@@ -27,6 +27,8 @@ jobs:
           corepack enable
           node -e "if (process.versions.node.split('.')[0] !== '22') throw new Error('Node 22 is required')"
           test "$(yarn --version)" = "1.22.22"
+      - name: Lint GitHub Actions workflows
+        run: yarn test:workflows
       - run: yarn install --frozen-lockfile
       - run: yarn playwright install --with-deps chromium
       - run: yarn quality

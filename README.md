@@ -30,7 +30,17 @@ Do not deploy this project to Vercel unless Erik explicitly overrides the hostin
 yarn quality
 ```
 
-Playwright browsers are a local prerequisite (`yarn playwright install chromium`); `yarn quality` mirrors CI's non-setup checks and includes `test:asset-size`.
+Playwright browsers are a local prerequisite (`yarn playwright install chromium`); `yarn quality` includes `test:asset-size`.
+
+Lint GitHub Actions workflow YAML, expressions, and embedded shell with the same
+command CI uses:
+
+```bash
+yarn test:workflows
+```
+
+The script downloads checksummed actionlint 1.7.12 and ShellCheck 0.11.0 binaries
+for Linux or macOS on its first run, then reuses them from the user cache.
 
 `test:wrangler` starts local HTTP and HTTPS `wrangler dev --local` servers against the
 built `out/` directory. It disables Wrangler telemetry and needs neither Cloudflare
