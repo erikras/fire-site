@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { queryAllByRole } from "@testing-library/dom";
 import { JSDOM } from "jsdom";
 
 const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
@@ -166,6 +167,46 @@ function assertAriaIdReferences(html, sourceFile) {
           );
         }
       }
+    }
+  } finally {
+    dom.window.close();
+  }
+}
+
+function assertSkipLinkTargets(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+
+  try {
+    const accessibleNameMatches = new Set(
+      queryAllByRole(document, "link", {
+        name: /skip/i,
+      }),
+    );
+    const skipLinks = [...document.querySelectorAll("a")].filter(
+      (link) => accessibleNameMatches.has(link) || /skip/i.test(link.textContent ?? ""),
+    );
+
+    for (const skipLink of skipLinks) {
+      const href = skipLink.getAttribute("href");
+      assert.ok(
+        href?.startsWith("#") && href.length > 1,
+        `${sourceFile} skip link must use a non-empty same-document fragment href`,
+      );
+
+      let fragment;
+      try {
+        fragment = decodeURIComponent(href.slice(1));
+      } catch (error) {
+        assert.fail(
+          `${sourceFile} skip link has an invalid encoded fragment "${href}": ${error.message}`,
+        );
+      }
+
+      assert.ok(
+        fragment && document.getElementById(fragment),
+        `${sourceFile} skip link targets missing id "${fragment}"`,
+      );
     }
   } finally {
     dom.window.close();
@@ -579,6 +620,32 @@ test("the ARIA ID-reference scanner rejects invalid token lists", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertAriaIdReferences(noReferences, "no-aria-id-references.html"));
+});
+
+test("every exported HTML document has resolvable in-document skip links", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertSkipLinkTargets(html, htmlFile);
+  }
+});
+
+test("the skip-link scanner rejects invalid targets and accepts an existing target", async () => {
+  for (const [fixture, expectedError] of [
+    ["skip-link-missing-target.html", /skip link targets missing id "content"/],
+    ["skip-link-hash-only.html", /skip link must use a non-empty same-document fragment href/],
+    ["skip-link-empty-href.html", /skip link must use a non-empty same-document fragment href/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertSkipLinkTargets(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(
+    path.join(staticExportFixtureDirectory, "skip-link-valid.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertSkipLinkTargets(valid, "skip-link-valid.html"));
 });
 
 test("every exported HTML document contains no inline event-handler attributes", async () => {
