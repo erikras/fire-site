@@ -1,0 +1,7 @@
+Intentional negative fixture for the merge-conflict marker scanner.
+The repository-wide check explicitly allowlists only this file.
+<<<<<<< HEAD
+current version
+=======
+incoming version
+>>>>>>> feature/example
