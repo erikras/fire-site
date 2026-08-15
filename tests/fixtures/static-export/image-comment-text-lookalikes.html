@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>The text &lt;img&gt; is not an element here</title>
+    <script>
+      const example = '<img src="/script.png">';
+    </script>
+    <style>
+      body::before {
+        content: '<img src="/style.png">';
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <img src="/comment.png"> -->
+    <p>The escaped text &lt;img src="/text.png"&gt; is not an element.</p>
+    <image-card>This custom element is not an image.</image-card>
+    <textarea><img src="/textarea.png"></textarea>
+  </body>
+</html>
