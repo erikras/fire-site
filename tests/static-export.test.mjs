@@ -2694,14 +2694,8 @@ test("the label-for scanner rejects empty, dangling, and non-labelable targets",
     ["label-for-missing-target.html", /label for="missing" references missing id "missing"/],
     ["label-for-empty.html", /label with an empty or whitespace-only for attribute/],
     ["label-for-whitespace.html", /label with an empty or whitespace-only for attribute/],
-    [
-      "label-for-non-labelable.html",
-      /label for="description" references non-labelable <div>/,
-    ],
-    [
-      "label-for-hidden-input.html",
-      /label for="token" references non-labelable <input>/,
-    ],
+    ["label-for-non-labelable.html", /label for="description" references non-labelable <div>/],
+    ["label-for-hidden-input.html", /label for="token" references non-labelable <input>/],
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(() => assertLabelForTargets(html, fixture), expectedError);
