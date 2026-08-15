@@ -215,6 +215,96 @@ function attributeValues(tag, attributeName) {
     .map((match) => match[2] ?? match[3] ?? match[4] ?? "");
 }
 
+function documentElementStartTagCounts(html) {
+  const counts = { html: 0, body: 0 };
+  const rawTextElements = new Set([
+    "iframe",
+    "noembed",
+    "noframes",
+    "script",
+    "style",
+    "textarea",
+    "title",
+    "xmp",
+  ]);
+  let index = 0;
+
+  const tagEnd = (start) => {
+    let quote;
+
+    for (let cursor = start; cursor < html.length; cursor += 1) {
+      const character = html[cursor];
+
+      if (quote) {
+        if (character === quote) {
+          quote = undefined;
+        }
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        return cursor;
+      }
+    }
+
+    return html.length - 1;
+  };
+
+  while (index < html.length) {
+    const openingBracket = html.indexOf("<", index);
+    if (openingBracket === -1) {
+      break;
+    }
+
+    if (html.startsWith("<!--", openingBracket)) {
+      const commentEnd = html.indexOf("-->", openingBracket + 4);
+      index = commentEnd === -1 ? html.length : commentEnd + 3;
+      continue;
+    }
+
+    const startTag = html.slice(openingBracket).match(/^<([A-Za-z][A-Za-z0-9:-]*)/);
+    if (!startTag) {
+      index = openingBracket + 1;
+      continue;
+    }
+
+    const name = startTag[1].toLowerCase();
+    const end = tagEnd(openingBracket + startTag[0].length);
+    index = end + 1;
+
+    if (name === "html" || name === "body") {
+      counts[name] += 1;
+    }
+
+    if (name === "plaintext") {
+      break;
+    }
+
+    if (rawTextElements.has(name)) {
+      const closingTag = new RegExp(`</${name}(?=[\\s/>])`, "gi");
+      closingTag.lastIndex = index;
+      const match = closingTag.exec(html);
+      index = match?.index ?? html.length;
+    }
+  }
+
+  return counts;
+}
+
+function assertSingleHtmlAndBody(html, sourceFile) {
+  const counts = documentElementStartTagCounts(html);
+
+  assert.equal(
+    counts.html,
+    1,
+    `${sourceFile} must contain exactly one <html> element (found ${counts.html})`,
+  );
+  assert.equal(
+    counts.body,
+    1,
+    `${sourceFile} must contain exactly one <body> element (found ${counts.body})`,
+  );
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -784,6 +874,33 @@ test("the public export path scanner rejects unsafe relative paths", async () =>
       /contains paths with characters that are unsafe in public URLs/,
     );
   }
+});
+
+test("every exported HTML document has exactly one html and one body element", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertSingleHtmlAndBody(html, htmlFile);
+  }
+});
+
+test("the document-element scanner enforces one html and one body element", async () => {
+  for (const [fixture, expectedError] of [
+    ["document-missing-html.html", /exactly one <html> element \(found 0\)/],
+    ["document-missing-body.html", /exactly one <body> element \(found 0\)/],
+    ["document-two-html.html", /exactly one <html> element \(found 2\)/],
+    ["document-two-body.html", /exactly one <body> element \(found 2\)/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertSingleHtmlAndBody(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(
+    path.join(staticExportFixtureDirectory, "document-elements-valid.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertSingleHtmlAndBody(valid, "document-elements-valid.html"));
 });
 
 test("every exported HTML document has unique, non-empty IDs", async () => {
