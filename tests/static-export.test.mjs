@@ -822,16 +822,19 @@ test("the ARIA role scanner rejects empty, unknown, and abstract roles", async (
     ],
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
-    assert.throws(() => assertValidAriaRoles(html, fixture), (error) => {
-      assert.match(error.message, /contains invalid WAI-ARIA role attributes/);
-      if (expectedInvalidTokens.length === 0) {
-        assert.match(error.message, /contains no role tokens/);
-      }
-      for (const token of expectedInvalidTokens) {
-        assert.match(error.message, new RegExp(`"${token}"`));
-      }
-      return true;
-    });
+    assert.throws(
+      () => assertValidAriaRoles(html, fixture),
+      (error) => {
+        assert.match(error.message, /contains invalid WAI-ARIA role attributes/);
+        if (expectedInvalidTokens.length === 0) {
+          assert.match(error.message, /contains no role tokens/);
+        }
+        for (const token of expectedInvalidTokens) {
+          assert.match(error.message, new RegExp(`"${token}"`));
+        }
+        return true;
+      },
+    );
   }
 
   for (const fixture of ["role-valid.html", "no-role.html"]) {
