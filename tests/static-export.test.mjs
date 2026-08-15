@@ -453,6 +453,22 @@ function assertImagesHaveValidAltText(html, sourceFile) {
   );
 }
 
+function assertAreasHaveNonEmptyAltText(html, sourceFile) {
+  const invalidAreas = documentHtmlTags(html)
+    .filter(({ name, isClosing }) => name === "area" && !isClosing)
+    .filter(({ tag }) => {
+      const altValues = attributeValues(tag, "alt");
+      return altValues.length === 0 || !altValues[0].trim();
+    })
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    invalidAreas,
+    [],
+    `${sourceFile} contains area elements without a non-empty alt attribute: ${invalidAreas.join(", ")}`,
+  );
+}
+
 function isElementVisible(element) {
   for (let current = element; current; current = current.parentElement) {
     const ariaHidden = current.getAttribute("aria-hidden")?.trim().toLowerCase();
@@ -1889,6 +1905,40 @@ test("the image alt scanner rejects missing and whitespace-only alt attributes",
     assert.throws(
       () => assertImagesHaveValidAltText(html, fixture),
       /contains img elements with missing or whitespace-only alt attributes/,
+    );
+  }
+});
+
+test("every exported image-map area has a non-empty alt attribute", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertAreasHaveNonEmptyAltText(html, htmlFile);
+  }
+});
+
+test("the area alt scanner accepts named areas, lookalikes, and documents without areas", async () => {
+  for (const fixture of [
+    "area-named.html",
+    "area-comment-text-lookalikes.html",
+    "area-none.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertAreasHaveNonEmptyAltText(html, fixture));
+  }
+});
+
+test("the area alt scanner rejects missing, empty, and whitespace-only alt attributes", async () => {
+  for (const fixture of [
+    "area-alt-missing.html",
+    "area-alt-empty.html",
+    "area-alt-whitespace.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertAreasHaveNonEmptyAltText(html, fixture),
+      /contains area elements without a non-empty alt attribute/,
     );
   }
 });
