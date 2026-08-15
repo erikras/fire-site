@@ -317,6 +317,36 @@ function assertNoCleartextUrls(html, sourceFile) {
   }
 }
 
+function assertBlankTargetsUseNoopener(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const unsafeTargets = [...dom.window.document.querySelectorAll("[target]")]
+      .filter((element) => (element.getAttribute("target") ?? "").toLowerCase() === "_blank")
+      .filter((element) => {
+        const relTokens = (element.getAttribute("rel") ?? "")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((token) => token.toLowerCase());
+        return !relTokens.includes("noopener") && !relTokens.includes("noreferrer");
+      })
+      .map((element) => {
+        const rel = element.hasAttribute("rel")
+          ? JSON.stringify(element.getAttribute("rel"))
+          : "missing rel";
+        return `<${element.localName}> with ${rel}`;
+      });
+
+    assert.deepEqual(
+      unsafeTargets,
+      [],
+      `${sourceFile} contains target="_blank" elements without rel="noopener" or rel="noreferrer": ${unsafeTargets.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertDocumentLanguageAndViewport(html, sourceFile) {
   const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
   assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
@@ -815,6 +845,39 @@ test("the cleartext URL scanner rejects plain HTTP and accepts safe URL forms", 
     "utf8",
   );
   assert.doesNotThrow(() => assertNoCleartextUrls(safeUrls, "no-http-urls.html"));
+});
+
+test('every exported HTML target="_blank" is protected from tabnabbing', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertBlankTargetsUseNoopener(html, htmlFile);
+  }
+});
+
+test('the target="_blank" scanner enforces protective rel tokens', async () => {
+  for (const fixture of [
+    "blank-target-missing-rel.html",
+    "blank-target-empty-rel.html",
+    "blank-target-nofollow-only.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertBlankTargetsUseNoopener(html, fixture),
+      /contains target="_blank" elements without rel="noopener" or rel="noreferrer"/,
+    );
+  }
+
+  for (const fixture of [
+    "blank-target-noopener.html",
+    "blank-target-noreferrer.html",
+    "blank-target-noopener-noreferrer.html",
+    "no-blank-target.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertBlankTargetsUseNoopener(html, fixture));
+  }
 });
 
 test("every exported HTML document declares its language and viewport metadata", async () => {
