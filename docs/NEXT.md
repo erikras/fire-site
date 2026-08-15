@@ -13,7 +13,7 @@
 7. Add a static-export check that every `button` has a non-empty accessible name.
 8. Add a static-export check that the document body never has `aria-hidden="true"`.
 9. Add a static-export check that repeated landmarks have unique accessible names within each
-    document.
+   document.
 10. Add a static-export check that no element has `aria-busy="true"`.
 11. Add a static-export check that every `table`, if any, has a caption or non-empty `aria-label`.
 12. Add a static-export check that generated links never use an empty `href=""`.
