@@ -517,6 +517,133 @@ function hasNonEmptyAccessibleName(element, { includeText = false, includeValue 
   return includeValue && (element.getAttribute("value") ?? "").trim().length > 0;
 }
 
+const landmarkRoles = new Set([
+  "banner",
+  "complementary",
+  "contentinfo",
+  "form",
+  "main",
+  "navigation",
+  "region",
+  "search",
+]);
+const sectioningElements = "article, aside, main, nav, section";
+
+function normalizeAccessibleName(value) {
+  return value.trim().replace(/\s+/gu, " ");
+}
+
+function landmarkAccessibleName(element) {
+  const { document } = element.ownerDocument.defaultView;
+
+  if (element.hasAttribute("aria-labelledby")) {
+    const referencedIds = (element.getAttribute("aria-labelledby") ?? "").trim().split(/\s+/);
+    if (referencedIds.length === 0 || referencedIds.includes("")) {
+      return "";
+    }
+
+    const referencedElements = referencedIds.map((id) => document.getElementById(id));
+    if (referencedElements.some((referencedElement) => referencedElement === null)) {
+      return "";
+    }
+
+    return normalizeAccessibleName(
+      referencedElements
+        .map((referencedElement) => visibleElementText(referencedElement))
+        .join(" "),
+    );
+  }
+
+  return normalizeAccessibleName(element.getAttribute("aria-label") ?? "");
+}
+
+function nativeLandmarkRole(element, accessibleName) {
+  const explicitRole = (element.getAttribute("role") ?? "")
+    .trim()
+    .split(/\s+/)
+    .find((role) => validAriaRoleTokens.has(role));
+
+  if (explicitRole) {
+    return landmarkRoles.has(explicitRole) ? explicitRole : undefined;
+  }
+
+  switch (element.localName) {
+    case "aside":
+      return "complementary";
+    case "footer":
+      return element.parentElement?.closest(sectioningElements) ? undefined : "contentinfo";
+    case "form":
+      return accessibleName ? "form" : undefined;
+    case "header":
+      return element.parentElement?.closest(sectioningElements) ? undefined : "banner";
+    case "main":
+      return "main";
+    case "nav":
+      return "navigation";
+    case "section":
+      return accessibleName ? "region" : undefined;
+    default:
+      return undefined;
+  }
+}
+
+function assertRepeatedLandmarksHaveUniqueAccessibleNames(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const landmarksByRole = new Map();
+
+    for (const element of dom.window.document.querySelectorAll("*")) {
+      if (!isElementVisible(element)) {
+        continue;
+      }
+
+      const accessibleName = landmarkAccessibleName(element);
+      const role = nativeLandmarkRole(element, accessibleName);
+      if (!role) {
+        continue;
+      }
+
+      const landmarks = landmarksByRole.get(role) ?? [];
+      landmarks.push({ accessibleName, element });
+      landmarksByRole.set(role, landmarks);
+    }
+
+    const violations = [];
+    for (const [role, landmarks] of landmarksByRole) {
+      if (landmarks.length < 2) {
+        continue;
+      }
+
+      const nameCounts = new Map();
+      for (const { accessibleName } of landmarks) {
+        if (accessibleName) {
+          nameCounts.set(accessibleName, (nameCounts.get(accessibleName) ?? 0) + 1);
+        }
+      }
+
+      if (landmarks.some(({ accessibleName }) => !accessibleName)) {
+        violations.push(`${role} landmarks include an empty accessible name`);
+      }
+      for (const [accessibleName, count] of nameCounts) {
+        if (count > 1) {
+          violations.push(
+            `${role} landmarks repeat accessible name ${JSON.stringify(accessibleName)}`,
+          );
+        }
+      }
+    }
+
+    assert.deepEqual(
+      violations,
+      [],
+      `${sourceFile} contains repeated same-type landmarks without unique non-empty accessible names: ${violations.join("; ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 const buttonInputTypes = new Set(["button", "reset", "submit"]);
 
 function isButtonInput(element) {
@@ -1714,6 +1841,43 @@ test("the button name scanner rejects missing and empty accessible names", async
     assert.throws(
       () => assertButtonsHaveAccessibleNames(html, fixture),
       /contains button controls without a non-empty accessible name/,
+    );
+  }
+});
+
+test("repeated same-type landmarks in exported HTML have unique non-empty accessible names", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertRepeatedLandmarksHaveUniqueAccessibleNames(html, htmlFile);
+  }
+});
+
+test("the repeated-landmark scanner accepts single, distinctly named, and lookalike landmarks", async () => {
+  for (const fixture of [
+    "landmark-one-nav-unnamed.html",
+    "landmark-two-navs-distinct-names.html",
+    "landmark-all-types-distinct-names.html",
+    "landmark-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertRepeatedLandmarksHaveUniqueAccessibleNames(html, fixture));
+  }
+});
+
+test("the repeated-landmark scanner rejects empty and duplicate accessible names", async () => {
+  for (const [fixture, expectedError] of [
+    ["landmark-two-navs-unnamed.html", /navigation landmarks include an empty accessible name/],
+    [
+      "landmark-two-asides-same-name.html",
+      /complementary landmarks repeat accessible name "Related"/,
+    ],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertRepeatedLandmarksHaveUniqueAccessibleNames(html, fixture),
+      expectedError,
     );
   }
 });
