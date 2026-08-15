@@ -16,7 +16,7 @@
    has a non-empty accessible name.
 8. Add a static-export check that every HTML document starts with exactly one HTML5 doctype.
 9. Add a static-export check that every `link rel="icon"` has a non-empty href that resolves inside
-    the static export.
+   the static export.
 10. Add a static-export check that generated HTML contains no `contenteditable` attributes.
 11. Add a static-export check that `lang` and `xml:lang` on an `html` element agree when both are
     present.
