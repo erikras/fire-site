@@ -74,6 +74,91 @@ const urlBearingAttributeNames = new Set([
   "srcset",
   "xlink:href",
 ]);
+// Concrete roles defined by WAI-ARIA 1.2. Abstract roles are intentionally excluded.
+const validAriaRoleTokens = new Set([
+  "alert",
+  "alertdialog",
+  "application",
+  "article",
+  "banner",
+  "blockquote",
+  "button",
+  "caption",
+  "cell",
+  "checkbox",
+  "code",
+  "columnheader",
+  "combobox",
+  "complementary",
+  "contentinfo",
+  "definition",
+  "deletion",
+  "dialog",
+  "directory",
+  "document",
+  "emphasis",
+  "feed",
+  "figure",
+  "form",
+  "generic",
+  "grid",
+  "gridcell",
+  "group",
+  "heading",
+  "img",
+  "insertion",
+  "link",
+  "list",
+  "listbox",
+  "listitem",
+  "log",
+  "main",
+  "marquee",
+  "math",
+  "menu",
+  "menubar",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "meter",
+  "navigation",
+  "none",
+  "note",
+  "option",
+  "paragraph",
+  "presentation",
+  "progressbar",
+  "radio",
+  "radiogroup",
+  "region",
+  "row",
+  "rowgroup",
+  "rowheader",
+  "scrollbar",
+  "search",
+  "searchbox",
+  "separator",
+  "slider",
+  "spinbutton",
+  "status",
+  "strong",
+  "subscript",
+  "superscript",
+  "switch",
+  "tab",
+  "table",
+  "tablist",
+  "tabpanel",
+  "term",
+  "textbox",
+  "time",
+  "timer",
+  "toolbar",
+  "tooltip",
+  "tree",
+  "treegrid",
+  "treeitem",
+]);
 
 async function inventory(directory, relativeDirectory = "") {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -160,6 +245,38 @@ function assertUniqueNonEmptyIds(html, sourceFile) {
     assert.notEqual(id, "", `${sourceFile} contains an empty id attribute`);
     assert.equal(seenIds.has(id), false, `${sourceFile} contains duplicate id "${id}"`);
     seenIds.add(id);
+  }
+}
+
+function assertValidAriaRoles(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const invalidRoles = [...dom.window.document.querySelectorAll("[role]")].flatMap((element) => {
+      const value = element.getAttribute("role") ?? "";
+      const tokens = value.trim() ? value.trim().split(/\s+/) : [];
+      const invalidTokens = tokens.filter((token) => !validAriaRoleTokens.has(token));
+
+      if (tokens.length > 0 && invalidTokens.length === 0) {
+        return [];
+      }
+
+      const reason =
+        tokens.length === 0
+          ? "contains no role tokens"
+          : `contains invalid tokens: ${invalidTokens
+              .map((token) => JSON.stringify(token))
+              .join(", ")}`;
+      return [`<${element.localName}> role=${JSON.stringify(value)} ${reason}`];
+    });
+
+    assert.deepEqual(
+      invalidRoles,
+      [],
+      `${sourceFile} contains invalid WAI-ARIA role attributes: ${invalidRoles.join("; ")}`,
+    );
+  } finally {
+    dom.window.close();
   }
 }
 
@@ -670,6 +787,57 @@ test("the HTML ID scanner rejects duplicate and empty IDs", () => {
     () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
     /fixture\.html contains an empty id attribute/,
   );
+});
+
+test("every exported HTML document uses only concrete WAI-ARIA 1.2 role tokens", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertValidAriaRoles(html, htmlFile);
+  }
+});
+
+test("the ARIA role scanner rejects empty, unknown, and abstract roles", async () => {
+  for (const [fixture, expectedInvalidTokens] of [
+    ["role-empty.html", []],
+    ["role-whitespace-only.html", []],
+    ["role-unknown.html", ["foo", "buttonn"]],
+    [
+      "role-abstract.html",
+      [
+        "roletype",
+        "widget",
+        "structure",
+        "window",
+        "landmark",
+        "section",
+        "input",
+        "range",
+        "command",
+        "sectionhead",
+        "select",
+        "composite",
+      ],
+    ],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertValidAriaRoles(html, fixture), (error) => {
+      assert.match(error.message, /contains invalid WAI-ARIA role attributes/);
+      if (expectedInvalidTokens.length === 0) {
+        assert.match(error.message, /contains no role tokens/);
+      }
+      for (const token of expectedInvalidTokens) {
+        assert.match(error.message, new RegExp(`"${token}"`));
+      }
+      return true;
+    });
+  }
+
+  for (const fixture of ["role-valid.html", "no-role.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertValidAriaRoles(html, fixture));
+  }
 });
 
 test("every exported HTML document has only non-positive numeric tabindex values", async () => {
