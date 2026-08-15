@@ -636,11 +636,7 @@ test("the tabindex scanner rejects positive and malformed values", async () => {
     );
   }
 
-  for (const fixture of [
-    "tabindex-zero.html",
-    "tabindex-negative-one.html",
-    "no-tabindex.html",
-  ]) {
+  for (const fixture of ["tabindex-zero.html", "tabindex-negative-one.html", "no-tabindex.html"]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertValidTabIndexValues(html, fixture));
   }
