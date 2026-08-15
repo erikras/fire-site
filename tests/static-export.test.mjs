@@ -5,6 +5,9 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
+const staticExportFixtureDirectory = fileURLToPath(
+  new URL("./fixtures/static-export/", import.meta.url),
+);
 const canonicalOrigin = "https://storecanary.app";
 const socialTitle = "The quiet morning check for a busy WooCommerce store.";
 const socialDescription =
@@ -83,17 +86,20 @@ function attributeReferences(contents) {
 
 function idAttributeValues(html) {
   const ids = [];
-  const attributePattern = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 
   for (const [tag] of html.matchAll(/<[A-Za-z][^<>]*>/g)) {
-    for (const match of tag.matchAll(attributePattern)) {
-      if (match[1].toLowerCase() === "id") {
-        ids.push(match[2] ?? match[3] ?? match[4] ?? "");
-      }
-    }
+    ids.push(...attributeValues(tag, "id"));
   }
 
   return ids;
+}
+
+function attributeValues(tag, attributeName) {
+  const attributePattern = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+
+  return [...tag.matchAll(attributePattern)]
+    .filter((match) => match[1].toLowerCase() === attributeName)
+    .map((match) => match[2] ?? match[3] ?? match[4] ?? "");
 }
 
 function assertUniqueNonEmptyIds(html, sourceFile) {
@@ -104,6 +110,30 @@ function assertUniqueNonEmptyIds(html, sourceFile) {
     assert.equal(seenIds.has(id), false, `${sourceFile} contains duplicate id "${id}"`);
     seenIds.add(id);
   }
+}
+
+function assertDocumentLanguageAndViewport(html, sourceFile) {
+  const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
+  assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
+
+  const languageValues = [
+    ...attributeValues(htmlTag, "lang"),
+    ...attributeValues(htmlTag, "xml:lang"),
+  ];
+  assert.ok(
+    languageValues.some((language) => /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(language)),
+    `${sourceFile} must declare a non-empty BCP 47 language on <html>`,
+  );
+
+  const viewportTags = [...html.matchAll(/<meta\b[^<>]*>/gi)]
+    .map(([tag]) => tag)
+    .filter((tag) =>
+      attributeValues(tag, "name").some((name) => name.toLowerCase() === "viewport"),
+    );
+  assert.ok(
+    viewportTags.some((tag) => attributeValues(tag, "content").some((content) => content.trim())),
+    `${sourceFile} must contain a viewport meta tag with non-empty content`,
+  );
 }
 
 function cssReferences(contents) {
@@ -290,6 +320,34 @@ test("the HTML ID scanner rejects duplicate and empty IDs", () => {
   assert.throws(
     () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
     /fixture\.html contains an empty id attribute/,
+  );
+});
+
+test("every exported HTML document declares its language and viewport metadata", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertDocumentLanguageAndViewport(html, htmlFile);
+  }
+});
+
+test("the document metadata scanner rejects missing and empty values", async () => {
+  for (const [fixture, expectedError] of [
+    ["missing-lang.html", /must declare a non-empty BCP 47 language/],
+    ["empty-lang.html", /must declare a non-empty BCP 47 language/],
+    ["missing-viewport.html", /must contain a viewport meta tag with non-empty content/],
+    ["empty-viewport.html", /must contain a viewport meta tag with non-empty content/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertDocumentLanguageAndViewport(html, fixture), expectedError);
+  }
+
+  assert.doesNotThrow(() =>
+    assertDocumentLanguageAndViewport(
+      '<html xml:lang="en-US"><head><meta content="width=device-width" name="VIEWPORT"></head></html>',
+      "valid-xml-lang.html",
+    ),
   );
 });
 
