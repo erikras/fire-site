@@ -13,7 +13,7 @@
 7. Add a static-export check that every generated `iframe`, if any, has a non-empty title.
 8. Add a static-export check that generated HTML contains no `http-equiv="refresh"` metadata.
 9. Add a static-export check that every `img` has an `alt` attribute, permitting an empty value
-    only when the image is explicitly decorative.
+   only when the image is explicitly decorative.
 10. Add a static-export check that resource source attributes such as `src`, `srcset`, and `poster`
     never use `data:` URLs.
 11. Add a static-export check that every form control has a non-empty accessible name.
