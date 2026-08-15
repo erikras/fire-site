@@ -2,7 +2,6 @@
 
 ## Unblocked
 
-1. Add a static-export check that the document body does not have a `hidden` attribute.
 2. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
    non-empty content.
 3. Add a static-export check that no static disclosure retains `aria-expanded="true"`.
