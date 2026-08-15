@@ -51,8 +51,7 @@ const patterns = [
   },
   {
     name: "Cloudflare API token assignment",
-    expression:
-      /\b(?:CF_API_TOKEN|CLOUDFLARE_API_TOKEN)\s*[:=]\s*["']?[A-Za-z0-9_-]{30,}["']?/g,
+    expression: /\b(?:CF_API_TOKEN|CLOUDFLARE_API_TOKEN)\s*[:=]\s*["']?[A-Za-z0-9_-]{30,}["']?/g,
   },
 ];
 
