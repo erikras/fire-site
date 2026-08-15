@@ -397,6 +397,21 @@ function assertBodyHasNoHiddenAttribute(html, sourceFile) {
   );
 }
 
+function assertBodyDoesNotDisableSpellcheck(html, sourceFile) {
+  const spellcheckDisabledBodies = documentElementStartTags(html)
+    .filter(({ name }) => name === "body")
+    .filter(({ tag }) =>
+      attributeValues(tag, "spellcheck").some((value) => value.trim().toLowerCase() === "false"),
+    )
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    spellcheckDisabledBodies,
+    [],
+    `${sourceFile} contains a <body> with spellcheck="false": ${spellcheckDisabledBodies.join(", ")}`,
+  );
+}
+
 function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
@@ -1935,6 +1950,37 @@ test("the body hidden scanner rejects every hidden attribute form case-insensiti
     assert.throws(
       () => assertBodyHasNoHiddenAttribute(html, fixture),
       /contains a <body> with a hidden attribute/,
+    );
+  }
+});
+
+test('every exported HTML document body does not have spellcheck="false"', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertBodyDoesNotDisableSpellcheck(html, htmlFile);
+  }
+});
+
+test("the body spellcheck scanner accepts omission, true, non-body controls, and lookalikes", async () => {
+  for (const fixture of [
+    "body-spellcheck-omitted.html",
+    "body-spellcheck-true.html",
+    "body-spellcheck-non-body.html",
+    "body-spellcheck-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertBodyDoesNotDisableSpellcheck(html, fixture));
+  }
+});
+
+test('the body spellcheck scanner rejects spellcheck="false" case-insensitively', async () => {
+  for (const fixture of ["body-spellcheck-false.html", "body-spellcheck-mixed-case.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertBodyDoesNotDisableSpellcheck(html, fixture),
+      /contains a <body> with spellcheck="false"/,
     );
   }
 });
