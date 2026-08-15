@@ -69,7 +69,7 @@ test("scanner accepts similar text that is not an exact conflict marker line", (
     " <<<<<<< HEAD",
     "<<<<<<",
     "========",
-    ">>>>>>>",
+    ">>>>>>>>",
     ">>>>>>> ",
     "after ======= text",
   ].join("\n");
