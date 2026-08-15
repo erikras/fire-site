@@ -1081,6 +1081,25 @@ function assertNoAccesskeyAttributes(html, sourceFile) {
   }
 }
 
+function assertNoPingAttributes(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const pingAttributes = [...dom.window.document.querySelectorAll("[ping]")].map(
+      (element) =>
+        `"ping" on <${element.localName}>: ${JSON.stringify(element.getAttribute("ping"))}`,
+    );
+
+    assert.deepEqual(
+      pingAttributes,
+      [],
+      `${sourceFile} contains ping attributes: ${pingAttributes.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoJavascriptUrls(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -2525,6 +2544,31 @@ test("the accesskey scanner rejects boolean, empty, and valued attributes", asyn
   for (const fixture of ["no-accesskey.html", "accesskey-lookalikes.html"]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertNoAccesskeyAttributes(html, fixture));
+  }
+});
+
+test("every exported HTML document contains no ping attributes", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoPingAttributes(html, htmlFile);
+  }
+});
+
+test("the ping scanner rejects present, empty, and mixed-case attributes", async () => {
+  for (const [fixture, expectedError] of [
+    ["ping-present.html", /"ping" on <a>: "https:\/\/tracker\.example\/audit"/],
+    ["ping-empty.html", /"ping" on <area>: ""/],
+    ["ping-mixed-case.html", /"ping" on <a>: "https:\/\/tracker\.example\/mixed-case"/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoPingAttributes(html, fixture), expectedError);
+  }
+
+  for (const fixture of ["no-ping.html", "ping-comment-text-lookalikes.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoPingAttributes(html, fixture));
   }
 });
 
