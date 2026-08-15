@@ -881,6 +881,32 @@ function assertValidAriaHaspopupValues(html, sourceFile) {
   }
 }
 
+function assertNoAriaBusyTrue(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const busyElements = [...dom.window.document.querySelectorAll("*")]
+      .filter((element) =>
+        element
+          .getAttributeNames()
+          .some(
+            (attributeName) =>
+              attributeName.toLowerCase() === "aria-busy" &&
+              element.getAttribute(attributeName)?.trim().toLowerCase() === "true",
+          ),
+      )
+      .map((element) => element.outerHTML);
+
+    assert.deepEqual(
+      busyElements,
+      [],
+      `${sourceFile} contains elements with aria-busy="true": ${busyElements.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertAriaIdReferences(html, sourceFile) {
   const dom = new JSDOM(html);
   const { document } = dom.window;
@@ -2046,6 +2072,36 @@ test("the aria-haspopup scanner rejects empty, whitespace-only, and unknown valu
     assert.throws(
       () => assertValidAriaHaspopupValues(html, fixture),
       /contains invalid aria-haspopup values/,
+    );
+  }
+});
+
+test('every exported HTML document contains no aria-busy="true" attributes', async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoAriaBusyTrue(html, htmlFile);
+  }
+});
+
+test("the aria-busy scanner accepts omitted, false, and comment or text lookalikes", async () => {
+  for (const fixture of [
+    "aria-busy-omitted.html",
+    "aria-busy-false.html",
+    "aria-busy-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoAriaBusyTrue(html, fixture));
+  }
+});
+
+test("the aria-busy scanner rejects true values case-insensitively", async () => {
+  for (const fixture of ["aria-busy-true.html", "aria-busy-mixed-case.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertNoAriaBusyTrue(html, fixture),
+      /contains elements with aria-busy="true"/,
     );
   }
 });
