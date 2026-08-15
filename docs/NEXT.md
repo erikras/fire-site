@@ -2,8 +2,6 @@
 
 ## Unblocked
 
-1. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
-   non-empty content.
 2. Add a static-export check that no static disclosure retains `aria-expanded="true"`.
 3. Add a static-export check that every `label` with a `for` attribute references an existing
    control in the same document.
