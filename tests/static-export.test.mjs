@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { JSDOM } from "jsdom";
 
 const exportDirectory = fileURLToPath(new URL("../out/", import.meta.url));
 const staticExportFixtureDirectory = fileURLToPath(
@@ -137,33 +138,34 @@ function assertDocumentLanguageAndViewport(html, sourceFile) {
 }
 
 function assertDocumentTitleAndCharset(html, sourceFile) {
-  const titleElements = [...html.matchAll(/<title\b[^<>]*>([\s\S]*?)<\/title\s*>/gi)];
-  assert.equal(
-    titleElements.length,
-    1,
-    `${sourceFile} must contain exactly one <title> element`,
+  const dom = new JSDOM(html);
+  const titleTexts = [...dom.window.document.querySelectorAll("title")].map(
+    (title) => title.textContent ?? "",
   );
-  assert.ok(titleElements[0][1].trim(), `${sourceFile} must contain a non-empty <title>`);
-
-  const metaTags = [...html.matchAll(/<meta\b[^<>]*>/gi)].map(([tag]) => tag);
-  const hasCharset = metaTags.some((tag) => {
-    if (attributeValues(tag, "charset").some((charset) => charset.trim())) {
+  const metaElements = [...dom.window.document.querySelectorAll("meta")];
+  const hasCharset = metaElements.some((meta) => {
+    if (meta.getAttribute("charset")?.trim()) {
       return true;
     }
 
-    const isContentType = attributeValues(tag, "http-equiv").some(
-      (value) => value.trim().toLowerCase() === "content-type",
+    const isContentType =
+      meta.getAttribute("http-equiv")?.trim().toLowerCase() === "content-type";
+    const content = meta.getAttribute("content") ?? "";
+    const match = content.match(
+      /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;\s"']+))/i,
     );
     return (
-      isContentType &&
-      attributeValues(tag, "content").some((content) => {
-        const match = content.match(
-          /(?:^|;)\s*charset\s*=\s*(?:"([^"]*)"|'([^']*)'|([^;\s"']+))/i,
-        );
-        return Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim());
-      })
+      isContentType && Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim())
     );
   });
+  dom.window.close();
+
+  assert.equal(
+    titleTexts.length,
+    1,
+    `${sourceFile} must contain exactly one <title> element`,
+  );
+  assert.ok(titleTexts[0].trim(), `${sourceFile} must contain a non-empty <title>`);
 
   assert.ok(
     hasCharset,
