@@ -2,10 +2,10 @@
 
 ## Unblocked
 
-1. Add a deterministic check that tracked text files contain no unresolved merge-conflict markers.
-2. Add a no-deploy browser regression for reduced-motion behavior.
-3. Add a static-export check that generated HTML contains no duplicate IDs.
-4. Add a static-export check that every generated HTML document declares its language and viewport metadata.
+1. Add a static-export check that generated HTML contains no duplicate IDs.
+2. Add a static-export check that every generated HTML document declares its language and viewport metadata.
+3. Add a deterministic check that tracked paths have no case-insensitive collisions.
+4. Add a static-export check that every generated HTML document has one non-empty title and one character-set declaration.
 
 ## Waits on Erik
 
