@@ -271,7 +271,7 @@ function documentElementStartTags(html) {
     const end = tagEnd(openingBracket + startTag[0].length);
     index = end + 1;
 
-    if (name === "html" || name === "head" || name === "body") {
+    if (name === "html" || name === "head" || name === "body" || name === "h1") {
       startTags.push({ name, tag: html.slice(openingBracket, end + 1) });
     }
 
@@ -291,7 +291,7 @@ function documentElementStartTags(html) {
 }
 
 function documentElementStartTagCounts(html) {
-  const counts = { html: 0, head: 0, body: 0 };
+  const counts = { html: 0, head: 0, body: 0, h1: 0 };
 
   for (const { name } of documentElementStartTags(html)) {
     counts[name] += 1;
@@ -319,6 +319,12 @@ function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
   assert.equal(head, 1, `${sourceFile} must contain exactly one <head> element (found ${head})`);
+}
+
+function assertSingleH1(html, sourceFile) {
+  const { h1 } = documentElementStartTagCounts(html);
+
+  assert.equal(h1, 1, `${sourceFile} must contain exactly one <h1> element (found ${h1})`);
 }
 
 function assertHtmlNamespace(html, sourceFile) {
@@ -1008,6 +1014,31 @@ test("the document-element scanner enforces one head element", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertSingleHead(valid, "document-head-lookalikes-valid.html"));
+});
+
+test("every exported HTML document has exactly one h1 element", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertSingleH1(html, htmlFile);
+  }
+});
+
+test("the document-element scanner enforces one h1 element", async () => {
+  for (const [fixture, expectedError] of [
+    ["document-missing-h1.html", /exactly one <h1> element \(found 0\)/],
+    ["document-two-h1s.html", /exactly one <h1> element \(found 2\)/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertSingleH1(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(
+    path.join(staticExportFixtureDirectory, "document-h1-lookalikes-valid.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertSingleH1(valid, "document-h1-lookalikes-valid.html"));
 });
 
 test("every exported html element uses the HTML namespace when xmlns is present", async () => {
