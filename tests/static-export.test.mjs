@@ -248,6 +248,27 @@ function assertUniqueNonEmptyIds(html, sourceFile) {
   }
 }
 
+function assertValidIdSyntax(html, sourceFile) {
+  const invalidIds = idAttributeValues(html).flatMap((id) => {
+    const violations = [];
+
+    if (/^[0-9]/.test(id)) {
+      violations.push("starts with an ASCII digit");
+    }
+    if (/\s/u.test(id)) {
+      violations.push("contains whitespace");
+    }
+
+    return violations.length > 0 ? [`${JSON.stringify(id)} (${violations.join(", ")})`] : [];
+  });
+
+  assert.deepEqual(
+    invalidIds,
+    [],
+    `${sourceFile} contains invalid id values: ${invalidIds.join("; ")}`,
+  );
+}
+
 function assertValidAriaRoles(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -787,6 +808,29 @@ test("the HTML ID scanner rejects duplicate and empty IDs", () => {
     () => assertUniqueNonEmptyIds("<main id></main>", "fixture.html"),
     /fixture\.html contains an empty id attribute/,
   );
+});
+
+test("every exported HTML document has IDs without leading digits or whitespace", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertValidIdSyntax(html, htmlFile);
+  }
+});
+
+test("the HTML ID syntax scanner rejects leading digits and whitespace", async () => {
+  for (const [fixture, expectedError] of [
+    ["id-leading-digit.html", /"1main" \(starts with an ASCII digit\)/],
+    ["id-space.html", /"skip link" \(contains whitespace\)/],
+    ["id-tab.html", /"main\\t" \(contains whitespace\)/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertValidIdSyntax(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(path.join(staticExportFixtureDirectory, "id-valid.html"), "utf8");
+  assert.doesNotThrow(() => assertValidIdSyntax(valid, "id-valid.html"));
 });
 
 test("every exported HTML document uses only concrete WAI-ARIA 1.2 role tokens", async () => {
