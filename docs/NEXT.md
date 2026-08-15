@@ -13,7 +13,7 @@
 8. Add a static-export check that every `html` element either omits `dir` (defaulting to `ltr`) or
    uses a valid `dir` value.
 9. Add a static-export check that landing-page `meta robots`, when present, does not include
-    `noindex`.
+   `noindex`.
 10. Add a static-export check that generated links never use `data:` URLs.
 11. Add a static-export check that every generated `iframe`, if any, has a non-empty title.
 12. Add a static-export check that generated HTML contains no `http-equiv="refresh"` metadata.

@@ -308,11 +308,7 @@ function assertSingleHtmlAndBody(html, sourceFile) {
 function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
-  assert.equal(
-    head,
-    1,
-    `${sourceFile} must contain exactly one <head> element (found ${head})`,
-  );
+  assert.equal(head, 1, `${sourceFile} must contain exactly one <head> element (found ${head})`);
 }
 
 function assertValidTabIndexValues(html, sourceFile) {
