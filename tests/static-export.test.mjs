@@ -160,6 +160,15 @@ const validAriaRoleTokens = new Set([
   "treegrid",
   "treeitem",
 ]);
+const validAriaHaspopupTokens = new Set([
+  "false",
+  "true",
+  "menu",
+  "listbox",
+  "tree",
+  "grid",
+  "dialog",
+]);
 
 async function inventory(directory, relativeDirectory = "") {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -846,6 +855,26 @@ function assertValidAriaRoles(html, sourceFile) {
       invalidRoles,
       [],
       `${sourceFile} contains invalid WAI-ARIA role attributes: ${invalidRoles.join("; ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
+function assertValidAriaHaspopupValues(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const invalidValues = [...dom.window.document.querySelectorAll("[aria-haspopup]")]
+      .map((element) => element.getAttribute("aria-haspopup") ?? "")
+      .filter((value) => !validAriaHaspopupTokens.has(value.trim().toLowerCase()));
+
+    assert.deepEqual(
+      invalidValues,
+      [],
+      `${sourceFile} contains invalid aria-haspopup values: ${invalidValues
+        .map((value) => JSON.stringify(value))
+        .join(", ")}; expected false, true, menu, listbox, tree, grid, or dialog when present`,
     );
   } finally {
     dom.window.close();
@@ -1980,6 +2009,44 @@ test("the ARIA role scanner rejects empty, unknown, and abstract roles", async (
   for (const fixture of ["role-valid.html", "no-role.html"]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.doesNotThrow(() => assertValidAriaRoles(html, fixture));
+  }
+});
+
+test("every exported HTML aria-haspopup attribute uses a recognized WAI-ARIA 1.2 token", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertValidAriaHaspopupValues(html, htmlFile);
+  }
+});
+
+test("the aria-haspopup scanner accepts omitted, recognized, mixed-case, and lookalike values", async () => {
+  for (const fixture of [
+    "aria-haspopup-omitted.html",
+    "aria-haspopup-true.html",
+    "aria-haspopup-menu.html",
+    "aria-haspopup-dialog.html",
+    "aria-haspopup-other-recognized-tokens.html",
+    "aria-haspopup-mixed-case.html",
+    "aria-haspopup-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertValidAriaHaspopupValues(html, fixture));
+  }
+});
+
+test("the aria-haspopup scanner rejects empty, whitespace-only, and unknown values", async () => {
+  for (const fixture of [
+    "aria-haspopup-empty.html",
+    "aria-haspopup-whitespace.html",
+    "aria-haspopup-bogus.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertValidAriaHaspopupValues(html, fixture),
+      /contains invalid aria-haspopup values/,
+    );
   }
 });
 
