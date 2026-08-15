@@ -720,6 +720,26 @@ function assertNoJavascriptUrls(html, sourceFile) {
   }
 }
 
+function assertNoDataLinkUrls(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const dataUrls = [...dom.window.document.querySelectorAll("a[href], area[href], link[href]")]
+      .filter((element) => /^\s*data:/i.test(element.getAttribute("href") ?? ""))
+      .map(
+        (element) => `"href" on <${element.localName}>: "${element.getAttribute("href") ?? ""}"`,
+      );
+
+    assert.deepEqual(
+      dataUrls,
+      [],
+      `${sourceFile} contains data: link URLs: ${dataUrls.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertNoCleartextUrls(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1660,6 +1680,32 @@ test("the URL-scheme scanner rejects javascript: URLs", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertNoJavascriptUrls(safeUrls, "no-javascript-urls.html"));
+});
+
+test("every exported HTML document contains no data: link URLs", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoDataLinkUrls(html, htmlFile);
+  }
+});
+
+test("the link URL-scheme scanner rejects data: hrefs and accepts safe URL forms", async () => {
+  for (const [fixture, expectedError] of [
+    ["data-link-a.html", /contains data: link URLs: "href" on <a>/],
+    ["data-link-area-uppercase.html", /contains data: link URLs: "href" on <area>/],
+    ["data-link-link-leading-whitespace.html", /contains data: link URLs: "href" on <link>/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoDataLinkUrls(html, fixture), expectedError);
+  }
+
+  const safeUrls = await readFile(
+    path.join(staticExportFixtureDirectory, "no-data-link-urls.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertNoDataLinkUrls(safeUrls, "no-data-link-urls.html"));
 });
 
 test("every exported HTML document contains no plain http:// URLs", async () => {
