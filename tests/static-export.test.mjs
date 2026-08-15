@@ -2096,7 +2096,7 @@ test("the aria-busy scanner accepts omitted, false, and comment or text lookalik
   }
 });
 
-test('the aria-busy scanner rejects true values case-insensitively', async () => {
+test("the aria-busy scanner rejects true values case-insensitively", async () => {
   for (const fixture of ["aria-busy-true.html", "aria-busy-mixed-case.html"]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(

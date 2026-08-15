@@ -11,7 +11,7 @@
 7. Add a static-export check that no element retains `aria-invalid="true"`.
 8. Add a static-export check that the document body does not have a `hidden` attribute.
 9. Add a static-export check that `theme-color` and `color-scheme` metadata, when present, each has
-    non-empty content.
+   non-empty content.
 10. Add a static-export check that no static disclosure retains `aria-expanded="true"`.
 11. Add a static-export check that every `label` with a `for` attribute references an existing
     control in the same document.
