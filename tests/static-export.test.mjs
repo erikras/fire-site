@@ -287,6 +287,36 @@ function assertNoJavascriptUrls(html, sourceFile) {
   }
 }
 
+function assertNoCleartextUrls(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const cleartextUrls = [...dom.window.document.querySelectorAll("*")].flatMap((element) =>
+      element
+        .getAttributeNames()
+        .filter((attributeName) => urlBearingAttributeNames.has(attributeName.toLowerCase()))
+        .filter((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return attributeName.toLowerCase() === "srcset"
+            ? /(?:^|,)\s*http:\/\//i.test(value)
+            : /^\s*http:\/\//i.test(value);
+        })
+        .map((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return `"${attributeName}" on <${element.localName}>: "${value}"`;
+        }),
+    );
+
+    assert.deepEqual(
+      cleartextUrls,
+      [],
+      `${sourceFile} contains plain http:// URLs: ${cleartextUrls.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertDocumentLanguageAndViewport(html, sourceFile) {
   const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
   assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
@@ -756,6 +786,35 @@ test("the URL-scheme scanner rejects javascript: URLs", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertNoJavascriptUrls(safeUrls, "no-javascript-urls.html"));
+});
+
+test("every exported HTML document contains no plain http:// URLs", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoCleartextUrls(html, htmlFile);
+  }
+});
+
+test("the cleartext URL scanner rejects plain HTTP and accepts safe URL forms", async () => {
+  for (const [fixture, expectedError] of [
+    ["http-href.html", /contains plain http:\/\/ URLs: "href" on <a>/],
+    ["http-src.html", /contains plain http:\/\/ URLs: "src" on <img>/],
+    [
+      "http-leading-space-uppercase.html",
+      /contains plain http:\/\/ URLs: "formaction" on <button>/,
+    ],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoCleartextUrls(html, fixture), expectedError);
+  }
+
+  const safeUrls = await readFile(
+    path.join(staticExportFixtureDirectory, "no-http-urls.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertNoCleartextUrls(safeUrls, "no-http-urls.html"));
 });
 
 test("every exported HTML document declares its language and viewport metadata", async () => {
