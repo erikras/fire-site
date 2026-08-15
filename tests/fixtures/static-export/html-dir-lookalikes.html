@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Direction declaration lookalikes</title>
+    <script>
+      const example = '<html dir="foo">';
+    </script>
+  </head>
+  <body>
+    <!-- <html dir=""> -->
+    <p>&lt;html dir="invalid"&gt;</p>
+    <div dir="foo">Descendant directions are outside this contract.</div>
+  </body>
+</html>

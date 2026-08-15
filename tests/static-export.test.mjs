@@ -385,6 +385,20 @@ function assertHtmlNamespace(html, sourceFile) {
   }
 }
 
+function assertHtmlDirection(html, sourceFile) {
+  const validDirections = new Set(["ltr", "rtl", "auto"]);
+  const htmlTags = documentElementStartTags(html).filter(({ name }) => name === "html");
+
+  for (const { tag } of htmlTags) {
+    for (const direction of attributeValues(tag, "dir")) {
+      assert.ok(
+        validDirections.has(direction.trim().toLowerCase()),
+        `${sourceFile} <html> dir must be "ltr", "rtl", or "auto" when present`,
+      );
+    }
+  }
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1225,6 +1239,42 @@ test("the html namespace scanner rejects empty and non-HTML namespaces", async (
     assert.throws(
       () => assertHtmlNamespace(html, fixture),
       /<html> xmlns must be exactly "http:\/\/www\.w3\.org\/1999\/xhtml" when present/,
+    );
+  }
+});
+
+test("every exported html element has a valid direction when dir is present", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertHtmlDirection(html, htmlFile);
+  }
+});
+
+test("the html direction scanner accepts omitted, ltr, rtl, auto, and lookalike values", async () => {
+  for (const fixture of [
+    "html-dir-none.html",
+    "html-dir-ltr.html",
+    "html-dir-rtl.html",
+    "html-dir-auto.html",
+    "html-dir-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertHtmlDirection(html, fixture));
+  }
+});
+
+test("the html direction scanner rejects empty, whitespace-only, and unknown values", async () => {
+  for (const fixture of [
+    "html-dir-empty.html",
+    "html-dir-whitespace.html",
+    "html-dir-invalid.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertHtmlDirection(html, fixture),
+      /<html> dir must be "ltr", "rtl", or "auto" when present/,
     );
   }
 });
