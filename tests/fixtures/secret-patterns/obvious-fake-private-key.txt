@@ -1,0 +1,5 @@
+INTENTIONALLY INVALID SECRET-SCANNER TEST FIXTURE.
+This file is allowlisted from the repository scan and tested directly.
+-----BEGIN PRIVATE KEY-----
+NOT-A-REAL-KEY
+-----END PRIVATE KEY-----
