@@ -905,6 +905,24 @@ function assertExactlyOneNonEmptyMetaDescription(html, sourceFile) {
   }
 }
 
+function assertNoMetaRefresh(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const refreshMetadata = [...dom.window.document.querySelectorAll("meta")]
+      .filter((meta) => meta.getAttribute("http-equiv")?.trim().toLowerCase() === "refresh")
+      .map((meta) => meta.outerHTML);
+
+    assert.deepEqual(
+      refreshMetadata,
+      [],
+      `${sourceFile} contains meta refresh directives: ${refreshMetadata.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertLandingPageAllowsIndexing(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1946,6 +1964,33 @@ test("the meta-description scanner rejects missing, empty, whitespace-only, and 
   ]) {
     const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
     assert.throws(() => assertExactlyOneNonEmptyMetaDescription(html, fixture), expectedError);
+  }
+});
+
+test("every exported HTML document contains no meta refresh directives", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoMetaRefresh(html, htmlFile);
+  }
+});
+
+test("the meta refresh scanner accepts absent, other http-equiv, and lookalike metadata", async () => {
+  for (const fixture of ["meta-refresh-none.html", "meta-refresh-lookalikes.html"]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertNoMetaRefresh(html, fixture));
+  }
+});
+
+test("the meta refresh scanner rejects delay, URL, mixed-case, and padded values", async () => {
+  for (const fixture of [
+    "meta-refresh-delay.html",
+    "meta-refresh-url.html",
+    "meta-refresh-mixed-case.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoMetaRefresh(html, fixture), /contains meta refresh directives/);
   }
 });
 
