@@ -14,7 +14,6 @@ const dailyOps = getProduct("daily-ops");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
-  title: "Store Canary · WooCommerce Daily Ops",
   description:
     "Catch stuck paid orders, failed payments, new stockouts, and broken scheduled actions in one concise WooCommerce daily digest.",
   openGraph: {
