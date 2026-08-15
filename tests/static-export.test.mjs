@@ -62,6 +62,17 @@ const starterAssetNames = new Set([
   "vercel.svg",
   "window.svg",
 ]);
+const urlBearingAttributeNames = new Set([
+  "action",
+  "cite",
+  "data",
+  "formaction",
+  "href",
+  "poster",
+  "src",
+  "srcset",
+  "xlink:href",
+]);
 
 async function inventory(directory, relativeDirectory = "") {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -176,6 +187,36 @@ function assertNoInlineEventHandlers(html, sourceFile) {
       inlineHandlers,
       [],
       `${sourceFile} contains inline event-handler attributes: ${inlineHandlers.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
+function assertNoJavascriptUrls(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const javascriptUrls = [...dom.window.document.querySelectorAll("*")].flatMap((element) =>
+      element
+        .getAttributeNames()
+        .filter((attributeName) => urlBearingAttributeNames.has(attributeName.toLowerCase()))
+        .filter((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return attributeName.toLowerCase() === "srcset"
+            ? /(?:^|,)\s*javascript:/i.test(value)
+            : /^\s*javascript:/i.test(value);
+        })
+        .map((attributeName) => {
+          const value = element.getAttribute(attributeName) ?? "";
+          return `"${attributeName}" on <${element.localName}>: "${value}"`;
+        }),
+    );
+
+    assert.deepEqual(
+      javascriptUrls,
+      [],
+      `${sourceFile} contains javascript: URLs: ${javascriptUrls.join(", ")}`,
     );
   } finally {
     dom.window.close();
@@ -540,6 +581,35 @@ test("the inline event-handler scanner rejects handler attributes", async () => 
   assert.doesNotThrow(() =>
     assertNoInlineEventHandlers(noInlineHandlers, "no-inline-event-handlers.html"),
   );
+});
+
+test("every exported HTML document contains no javascript: URLs", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoJavascriptUrls(html, htmlFile);
+  }
+});
+
+test("the URL-scheme scanner rejects javascript: URLs", async () => {
+  for (const [fixture, expectedError] of [
+    ["javascript-href.html", /contains javascript: URLs: "href" on <a>/],
+    ["javascript-src.html", /contains javascript: URLs: "src" on <img>/],
+    [
+      "javascript-leading-space-uppercase.html",
+      /contains javascript: URLs: "formaction" on <button>/,
+    ],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoJavascriptUrls(html, fixture), expectedError);
+  }
+
+  const safeUrls = await readFile(
+    path.join(staticExportFixtureDirectory, "no-javascript-urls.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertNoJavascriptUrls(safeUrls, "no-javascript-urls.html"));
 });
 
 test("every exported HTML document declares its language and viewport metadata", async () => {
