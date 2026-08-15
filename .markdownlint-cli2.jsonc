@@ -1,0 +1,26 @@
+{
+  "config": {
+    // Prose line wrapping is left to the repository formatter.
+    "MD013": false,
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    // These directories contain dependencies or generated test/build output,
+    // not tracked repository documentation.
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "playwright-report/**",
+    "test-results/**",
+  ],
+  "overrides": [
+    {
+      // CLAUDE.md is an agent include directive, not a standalone document.
+      "filter": ["CLAUDE.md"],
+      "config": {
+        "MD041": false,
+      },
+      "combine": "merge",
+    },
+  ],
+}
