@@ -11,7 +11,7 @@
 7. Add a static-export check that `role` attributes contain only valid WAI-ARIA role tokens.
 8. Add a static-export check that no `id` value starts with a digit or contains whitespace.
 9. Add a static-export check that every HTML document has exactly one html element and one body
-    element.
+   element.
 10. Add a static-export check that generated HTML contains no `autofocus` attributes.
 11. Add a static-export check that every HTML document has exactly one `h1`.
 12. Add a static-export check that every HTML document has a non-empty meta description.
