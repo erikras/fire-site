@@ -161,6 +161,27 @@ function assertAriaIdReferences(html, sourceFile) {
   }
 }
 
+function assertNoInlineEventHandlers(html, sourceFile) {
+  const dom = new JSDOM(html);
+
+  try {
+    const inlineHandlers = [...dom.window.document.querySelectorAll("*")].flatMap((element) =>
+      element
+        .getAttributeNames()
+        .filter((attributeName) => /^on[a-z]+$/i.test(attributeName))
+        .map((attributeName) => `"${attributeName}" on <${element.localName}>`),
+    );
+
+    assert.deepEqual(
+      inlineHandlers,
+      [],
+      `${sourceFile} contains inline event-handler attributes: ${inlineHandlers.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertDocumentLanguageAndViewport(html, sourceFile) {
   const htmlTag = html.match(/<html\b[^<>]*>/i)?.[0];
   assert.ok(htmlTag, `${sourceFile} is missing an <html> element`);
@@ -491,6 +512,34 @@ test("the ARIA ID-reference scanner rejects invalid token lists", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertAriaIdReferences(noReferences, "no-aria-id-references.html"));
+});
+
+test("every exported HTML document contains no inline event-handler attributes", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertNoInlineEventHandlers(html, htmlFile);
+  }
+});
+
+test("the inline event-handler scanner rejects handler attributes", async () => {
+  for (const [fixture, expectedError] of [
+    ["inline-onclick.html", /contains inline event-handler attributes: "onclick" on <button>/],
+    ["inline-onerror.html", /contains inline event-handler attributes: "onerror" on <img>/],
+    ["inline-empty-onload.html", /contains inline event-handler attributes: "onload" on <body>/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertNoInlineEventHandlers(html, fixture), expectedError);
+  }
+
+  const noInlineHandlers = await readFile(
+    path.join(staticExportFixtureDirectory, "no-inline-event-handlers.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() =>
+    assertNoInlineEventHandlers(noInlineHandlers, "no-inline-event-handlers.html"),
+  );
 });
 
 test("every exported HTML document declares its language and viewport metadata", async () => {
