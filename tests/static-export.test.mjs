@@ -429,6 +429,86 @@ function assertImagesHaveValidAltText(html, sourceFile) {
   );
 }
 
+function isElementVisible(element) {
+  for (let current = element; current; current = current.parentElement) {
+    const ariaHidden = current.getAttribute("aria-hidden")?.trim().toLowerCase();
+    if (
+      current.hasAttribute("hidden") ||
+      ariaHidden === "true" ||
+      current.style.display === "none" ||
+      current.style.visibility === "hidden" ||
+      current.style.visibility === "collapse"
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function visibleElementText(element) {
+  if (!isElementVisible(element)) {
+    return "";
+  }
+
+  const { Node } = element.ownerDocument.defaultView;
+  return [...element.childNodes]
+    .map((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent ?? "";
+      }
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        return visibleElementText(node);
+      }
+      return "";
+    })
+    .join("");
+}
+
+function assertFormControlsHaveAccessibleNames(html, sourceFile) {
+  const dom = new JSDOM(html);
+  const { document } = dom.window;
+
+  try {
+    const unnamedControls = [...document.querySelectorAll("input, select, textarea")]
+      .filter((control) => control.localName !== "input" || control.type !== "hidden")
+      .filter((control) => {
+        if (control.hasAttribute("aria-labelledby")) {
+          const value = control.getAttribute("aria-labelledby") ?? "";
+          const referencedIds = value.trim() ? value.trim().split(/\s+/) : [];
+          const referencedElements = referencedIds.map((id) => document.getElementById(id));
+
+          return (
+            referencedIds.length === 0 ||
+            referencedElements.some((element) => element === null) ||
+            !referencedElements
+              .map((element) => visibleElementText(element))
+              .join(" ")
+              .trim()
+          );
+        }
+
+        if (control.hasAttribute("aria-label")) {
+          return !(control.getAttribute("aria-label") ?? "").trim();
+        }
+
+        return ![...(control.labels ?? [])]
+          .map((label) => visibleElementText(label))
+          .join(" ")
+          .trim();
+      })
+      .map((control) => control.outerHTML);
+
+    assert.deepEqual(
+      unnamedControls,
+      [],
+      `${sourceFile} contains input, select, or textarea controls without a non-empty accessible name: ${unnamedControls.join(", ")}`,
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
 function assertValidTabIndexValues(html, sourceFile) {
   const dom = new JSDOM(html);
 
@@ -1461,6 +1541,46 @@ test("the image alt scanner rejects missing and whitespace-only alt attributes",
     assert.throws(
       () => assertImagesHaveValidAltText(html, fixture),
       /contains img elements with missing or whitespace-only alt attributes/,
+    );
+  }
+});
+
+test("every exported input, select, and textarea has a non-empty accessible name", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertFormControlsHaveAccessibleNames(html, htmlFile);
+  }
+});
+
+test("the form-control name scanner accepts labels, ARIA names, hidden inputs, and lookalikes", async () => {
+  for (const fixture of [
+    "form-control-labels.html",
+    "form-control-aria-label.html",
+    "form-control-aria-labelledby.html",
+    "form-control-hidden-input.html",
+    "form-control-comment-text-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertFormControlsHaveAccessibleNames(html, fixture));
+  }
+});
+
+test("the form-control name scanner rejects missing and empty accessible names", async () => {
+  for (const fixture of [
+    "form-control-unlabeled-input.html",
+    "form-control-unlabeled-select.html",
+    "form-control-unlabeled-textarea.html",
+    "form-control-whitespace-aria-label.html",
+    "form-control-missing-aria-labelledby.html",
+    "form-control-empty-aria-labelledby-text.html",
+    "form-control-hidden-aria-labelledby-text.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertFormControlsHaveAccessibleNames(html, fixture),
+      /contains input, select, or textarea controls without a non-empty accessible name/,
     );
   }
 });
