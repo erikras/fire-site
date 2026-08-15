@@ -2,8 +2,7 @@
 
 ## Unblocked
 
-1. Add a print stylesheet and print-media browser check so the one-page explanation and contact details remain useful when printed or saved as PDF.
-2. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
+1. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
 
 ## Waits on Erik
 

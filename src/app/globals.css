@@ -469,3 +469,158 @@ a:focus-visible {
     background: CanvasText;
   }
 }
+
+@media print {
+  @page {
+    margin: 0.55in;
+  }
+
+  :root {
+    --paper: #fff;
+    --paper-deep: #fff;
+    --ink: #000;
+    --muted: #000;
+    --line: #666;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 10pt;
+  }
+  a {
+    text-decoration: underline;
+  }
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+  h1,
+  h2,
+  strong {
+    break-after: avoid;
+  }
+
+  .skip-link,
+  .site-header nav,
+  .brand-mark,
+  .preview-chrome,
+  .signal {
+    display: none;
+  }
+  .site-header {
+    min-height: 0;
+    padding: 0 0 12px;
+    border-color: var(--line);
+    background: #fff;
+  }
+  .section-shell {
+    padding: 24px 0;
+  }
+  .product-hero,
+  .split-section,
+  .apply-grid {
+    display: block;
+    min-height: 0;
+  }
+
+  .product-copy h1 {
+    max-width: none;
+    font-size: 30pt;
+    line-height: 1;
+  }
+  .product-copy .stage-badge {
+    margin-bottom: 18px;
+  }
+  .lede {
+    max-width: none;
+    margin: 16px 0;
+    color: #000;
+    font-size: 12pt;
+  }
+  .button,
+  .button-primary {
+    min-height: 0;
+    padding: 6px 10px;
+    border-color: #000;
+    background: #fff;
+    color: #000;
+    break-inside: avoid;
+  }
+  .product-copy .button {
+    margin-top: 0;
+  }
+
+  .product-preview {
+    margin-top: 24px;
+    border-color: var(--line);
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+    transform: none;
+  }
+  .preview-body {
+    padding: 16px;
+  }
+  .preview-kicker {
+    color: #000;
+  }
+  .preview-body h2 {
+    margin-bottom: 14px;
+    font-size: 18pt;
+  }
+  .preview-row {
+    padding: 8px 0;
+  }
+  .preview-row span {
+    gap: 0;
+  }
+
+  .split-section h2,
+  .apply-section h2 {
+    margin-bottom: 12px;
+    font-size: 20pt;
+  }
+  .split-section > div > p:last-child,
+  .apply-grid > div:first-child p,
+  .application-card p {
+    color: #000;
+    font-size: 10pt;
+  }
+  .feature-list {
+    margin-top: 14px;
+  }
+  .feature-list li {
+    padding: 8px 0;
+  }
+
+  .proof-strip {
+    grid-template-columns: repeat(3, 1fr);
+    border-color: var(--line);
+    background: #fff;
+    break-inside: avoid;
+  }
+  .proof-strip div {
+    min-height: 0;
+    padding: 12px;
+    border-color: var(--line);
+    gap: 8px;
+  }
+
+  .application-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-color: var(--line);
+    background: #fff;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .site-footer {
+    padding: 18px 0 0;
+    border-color: var(--line);
+  }
+}
