@@ -2,7 +2,9 @@
 
 ## Unblocked
 
-1. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
+1. Add an explicit Node 22 toolchain contract for local development so it cannot drift from the CI runtime or the pinned Yarn version.
+2. Add CI concurrency cancellation and a job timeout so superseded or hung quality runs do not consume runner capacity.
+3. Add one non-deploying local quality command that mirrors the CI checks and use it in the development documentation to prevent command drift.
 
 ## Waits on Erik
 
