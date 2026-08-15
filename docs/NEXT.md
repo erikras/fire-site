@@ -2,7 +2,9 @@
 
 ## Unblocked
 
-1. Add a default-color focus-indicator visibility contract, including the 3:1 adjacent-color ratio, for the skip link, primary navigation, and both access CTAs.
+1. Add a local social-share image and matching Open Graph and Twitter card metadata, including image dimensions and alt text.
+2. Add a print stylesheet and print-media browser check so the one-page explanation and contact details remain useful when printed or saved as PDF.
+3. Add grouped monthly Dependabot updates for Yarn and GitHub Actions, with conservative open-PR limits.
 
 ## Waits on Erik
 
