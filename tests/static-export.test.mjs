@@ -215,8 +215,8 @@ function attributeValues(tag, attributeName) {
     .map((match) => match[2] ?? match[3] ?? match[4] ?? "");
 }
 
-function documentElementStartTagCounts(html) {
-  const counts = { html: 0, head: 0, body: 0 };
+function documentElementStartTags(html) {
+  const startTags = [];
   const rawTextElements = new Set([
     "iframe",
     "noembed",
@@ -272,7 +272,7 @@ function documentElementStartTagCounts(html) {
     index = end + 1;
 
     if (name === "html" || name === "head" || name === "body") {
-      counts[name] += 1;
+      startTags.push({ name, tag: html.slice(openingBracket, end + 1) });
     }
 
     if (name === "plaintext") {
@@ -285,6 +285,16 @@ function documentElementStartTagCounts(html) {
       const match = closingTag.exec(html);
       index = match?.index ?? html.length;
     }
+  }
+
+  return startTags;
+}
+
+function documentElementStartTagCounts(html) {
+  const counts = { html: 0, head: 0, body: 0 };
+
+  for (const { name } of documentElementStartTags(html)) {
+    counts[name] += 1;
   }
 
   return counts;
@@ -309,6 +319,20 @@ function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
   assert.equal(head, 1, `${sourceFile} must contain exactly one <head> element (found ${head})`);
+}
+
+function assertHtmlNamespace(html, sourceFile) {
+  const htmlTags = documentElementStartTags(html).filter(({ name }) => name === "html");
+
+  for (const { tag } of htmlTags) {
+    for (const namespace of attributeValues(tag, "xmlns")) {
+      assert.equal(
+        namespace,
+        "http://www.w3.org/1999/xhtml",
+        `${sourceFile} <html> xmlns must be exactly "http://www.w3.org/1999/xhtml" when present`,
+      );
+    }
+  }
 }
 
 function assertValidTabIndexValues(html, sourceFile) {
@@ -963,6 +987,42 @@ test("the document-element scanner enforces one head element", async () => {
     "utf8",
   );
   assert.doesNotThrow(() => assertSingleHead(valid, "document-head-lookalikes-valid.html"));
+});
+
+test("every exported html element uses the HTML namespace when xmlns is present", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertHtmlNamespace(html, htmlFile);
+  }
+});
+
+test("the html namespace scanner accepts absent and exact HTML namespaces", async () => {
+  for (const fixture of [
+    "html-xmlns-none.html",
+    "html-xmlns-valid.html",
+    "html-xmlns-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertHtmlNamespace(html, fixture));
+  }
+});
+
+test("the html namespace scanner rejects empty and non-HTML namespaces", async () => {
+  for (const fixture of [
+    "html-xmlns-empty.html",
+    "html-xmlns-whitespace.html",
+    "html-xmlns-wrong.html",
+    "html-xmlns-svg.html",
+    "html-xmlns-mathml.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertHtmlNamespace(html, fixture),
+      /<html> xmlns must be exactly "http:\/\/www\.w3\.org\/1999\/xhtml" when present/,
+    );
+  }
 });
 
 test("every exported HTML document has unique, non-empty IDs", async () => {
