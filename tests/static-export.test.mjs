@@ -384,6 +384,19 @@ function assertBodyIsNotAriaHidden(html, sourceFile) {
   );
 }
 
+function assertBodyHasNoHiddenAttribute(html, sourceFile) {
+  const hiddenBodies = documentElementStartTags(html)
+    .filter(({ name }) => name === "body")
+    .filter(({ tag }) => attributeValues(tag, "hidden").length > 0)
+    .map(({ tag }) => tag);
+
+  assert.deepEqual(
+    hiddenBodies,
+    [],
+    `${sourceFile} contains a <body> with a hidden attribute: ${hiddenBodies.join(", ")}`,
+  );
+}
+
 function assertSingleHead(html, sourceFile) {
   const { head } = documentElementStartTagCounts(html);
 
@@ -1794,6 +1807,42 @@ test('the body aria-hidden scanner rejects aria-hidden="true"', async () => {
     assert.throws(
       () => assertBodyIsNotAriaHidden(html, fixture),
       /contains a <body> with aria-hidden="true"/,
+    );
+  }
+});
+
+test("every exported HTML document body does not have a hidden attribute", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertBodyHasNoHiddenAttribute(html, htmlFile);
+  }
+});
+
+test("the body hidden scanner accepts omission, non-body attributes, and lookalikes", async () => {
+  for (const fixture of [
+    "body-hidden-omitted.html",
+    "body-hidden-non-body.html",
+    "body-hidden-lookalikes.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.doesNotThrow(() => assertBodyHasNoHiddenAttribute(html, fixture));
+  }
+});
+
+test("the body hidden scanner rejects every hidden attribute form case-insensitively", async () => {
+  for (const fixture of [
+    "body-hidden-boolean.html",
+    "body-hidden-empty.html",
+    "body-hidden-valued.html",
+    "body-hidden-until-found.html",
+    "body-hidden-mixed-case.html",
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(
+      () => assertBodyHasNoHiddenAttribute(html, fixture),
+      /contains a <body> with a hidden attribute/,
     );
   }
 });
