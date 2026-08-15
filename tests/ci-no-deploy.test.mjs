@@ -152,7 +152,7 @@ function analyzeWorkflow(source, filename) {
     return errors;
   }
 
-  for (const job of directEntries(lines, jobsEntries[0])) {
+  for (const job of directEntries(lines, jobsEntries[0].index)) {
     const jobEnd = blockEnd(lines, job.index);
     const jobEntries = directEntries(lines, job.index);
     const jobName = jobEntries.find((entry) => entry.key === "name");
