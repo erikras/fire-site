@@ -247,11 +247,40 @@ function assertDocumentLanguageAndViewport(html, sourceFile) {
   );
 }
 
-function assertDocumentTitleAndCharset(html, sourceFile) {
+function documentTitle(html, sourceFile) {
   const dom = new JSDOM(html);
   const titleTexts = [...dom.window.document.querySelectorAll("title")].map(
     (title) => title.textContent ?? "",
   );
+  dom.window.close();
+
+  assert.equal(titleTexts.length, 1, `${sourceFile} must contain exactly one <title> element`);
+  assert.ok(titleTexts[0].trim(), `${sourceFile} must contain a non-empty <title>`);
+
+  return titleTexts[0].trim();
+}
+
+function assertUniqueDocumentTitles(documents) {
+  const titleSources = new Map();
+
+  for (const { html, sourceFile } of documents) {
+    const title = documentTitle(html, sourceFile);
+    const firstSource = titleSources.get(title);
+
+    if (firstSource !== undefined) {
+      assert.fail(
+        `${sourceFile} has duplicate document title "${title}" (already used by ${firstSource})`,
+      );
+    }
+
+    titleSources.set(title, sourceFile);
+  }
+}
+
+function assertDocumentTitleAndCharset(html, sourceFile) {
+  documentTitle(html, sourceFile);
+
+  const dom = new JSDOM(html);
   const metaElements = [...dom.window.document.querySelectorAll("meta")];
   const hasCharset = metaElements.some((meta) => {
     if (meta.getAttribute("charset")?.trim()) {
@@ -264,9 +293,6 @@ function assertDocumentTitleAndCharset(html, sourceFile) {
     return isContentType && Boolean((match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim());
   });
   dom.window.close();
-
-  assert.equal(titleTexts.length, 1, `${sourceFile} must contain exactly one <title> element`);
-  assert.ok(titleTexts[0].trim(), `${sourceFile} must contain a non-empty <title>`);
 
   assert.ok(hasCharset, `${sourceFile} must contain a non-empty character-set declaration`);
 }
@@ -647,6 +673,43 @@ test("every exported HTML document has one non-empty title and a character set",
     const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
     assertDocumentTitleAndCharset(html, htmlFile);
   }
+});
+
+test("exported HTML documents have unique trimmed titles", async () => {
+  const files = await inventory(exportDirectory);
+  const htmlFiles = files.filter((file) => file.endsWith(".html"));
+  const documents = await Promise.all(
+    htmlFiles.map(async (sourceFile) => ({
+      sourceFile,
+      html: await readFile(path.join(exportDirectory, sourceFile), "utf8"),
+    })),
+  );
+
+  assertUniqueDocumentTitles(documents);
+});
+
+test("the document-title scanner rejects collisions and accepts distinct titles", async () => {
+  const readFixtures = (sourceFiles) =>
+    Promise.all(
+      sourceFiles.map(async (sourceFile) => ({
+        sourceFile,
+        html: await readFile(path.join(staticExportFixtureDirectory, sourceFile), "utf8"),
+      })),
+    );
+  const duplicateTitles = await readFixtures([
+    "duplicate-title-first.html",
+    "duplicate-title-whitespace.html",
+  ]);
+  const distinctTitles = await readFixtures([
+    "distinct-title-landing.html",
+    "distinct-title-not-found.html",
+  ]);
+
+  assert.throws(
+    () => assertUniqueDocumentTitles(duplicateTitles),
+    /duplicate-title-whitespace\.html has duplicate document title "Store Canary" \(already used by duplicate-title-first\.html\)/,
+  );
+  assert.doesNotThrow(() => assertUniqueDocumentTitles(distinctTitles));
 });
 
 test("the title and character-set scanner rejects invalid document metadata", async () => {
