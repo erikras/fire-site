@@ -12,7 +12,7 @@
 7. Add a static-export check that `aria-hidden="true"` elements contain no focusable controls.
 8. Add a static-export check that generated HTML contains no `accesskey` attributes.
 9. Add a static-export check that every `html` element either omits `dir` (defaulting to `ltr`) or
-    uses a valid `dir` value.
+   uses a valid `dir` value.
 10. Add a static-export check that landing-page `meta robots`, when present, does not include
     `noindex`.
 11. Add a static-export check that generated links never use `data:` URLs.
