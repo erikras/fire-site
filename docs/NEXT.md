@@ -2,8 +2,10 @@
 
 ## Unblocked
 
-1. Add CI concurrency cancellation and a job timeout so superseded or hung quality runs do not consume runner capacity.
-2. Add one non-deploying local quality command that mirrors the CI checks and use it in the development documentation to prevent command drift.
+1. Add one non-deploying local quality command that mirrors the CI checks and use it in the development documentation to prevent command drift.
+2. Add a static-export integrity test that cross-checks sitemap routes, canonical URLs, and generated HTML.
+3. Add no-deploy checks for broken internal links in the exported site and repository documentation.
+4. Add automated accessibility regression coverage for keyboard focus order and reduced-motion behavior.
 
 ## Waits on Erik
 
