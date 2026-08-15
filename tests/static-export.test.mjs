@@ -216,7 +216,7 @@ function attributeValues(tag, attributeName) {
 }
 
 function documentElementStartTagCounts(html) {
-  const counts = { html: 0, body: 0 };
+  const counts = { html: 0, head: 0, body: 0 };
   const rawTextElements = new Set([
     "iframe",
     "noembed",
@@ -271,7 +271,7 @@ function documentElementStartTagCounts(html) {
     const end = tagEnd(openingBracket + startTag[0].length);
     index = end + 1;
 
-    if (name === "html" || name === "body") {
+    if (name === "html" || name === "head" || name === "body") {
       counts[name] += 1;
     }
 
@@ -303,6 +303,12 @@ function assertSingleHtmlAndBody(html, sourceFile) {
     1,
     `${sourceFile} must contain exactly one <body> element (found ${counts.body})`,
   );
+}
+
+function assertSingleHead(html, sourceFile) {
+  const { head } = documentElementStartTagCounts(html);
+
+  assert.equal(head, 1, `${sourceFile} must contain exactly one <head> element (found ${head})`);
 }
 
 function assertValidTabIndexValues(html, sourceFile) {
@@ -901,6 +907,31 @@ test("the document-element scanner enforces one html and one body element", asyn
     "utf8",
   );
   assert.doesNotThrow(() => assertSingleHtmlAndBody(valid, "document-elements-valid.html"));
+});
+
+test("every exported HTML document has exactly one head element", async () => {
+  const files = await inventory(exportDirectory);
+
+  for (const htmlFile of files.filter((file) => file.endsWith(".html"))) {
+    const html = await readFile(path.join(exportDirectory, htmlFile), "utf8");
+    assertSingleHead(html, htmlFile);
+  }
+});
+
+test("the document-element scanner enforces one head element", async () => {
+  for (const [fixture, expectedError] of [
+    ["document-missing-head.html", /exactly one <head> element \(found 0\)/],
+    ["document-two-heads.html", /exactly one <head> element \(found 2\)/],
+  ]) {
+    const html = await readFile(path.join(staticExportFixtureDirectory, fixture), "utf8");
+    assert.throws(() => assertSingleHead(html, fixture), expectedError);
+  }
+
+  const valid = await readFile(
+    path.join(staticExportFixtureDirectory, "document-head-lookalikes-valid.html"),
+    "utf8",
+  );
+  assert.doesNotThrow(() => assertSingleHead(valid, "document-head-lookalikes-valid.html"));
 });
 
 test("every exported HTML document has unique, non-empty IDs", async () => {
